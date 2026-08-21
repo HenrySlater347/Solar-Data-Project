@@ -7,57 +7,94 @@ const [land, mapData, fuelMix, countries] = await Promise.all([
   d3.json('data/top_countries.json')
 ]);
 
-/* ===================== HERO DOT-GRID BUILD-UP ===================== */
+/* ===================== HERO BUBBLE CLUSTERS ===================== */
 (function(){
   const el = document.getElementById('heroViz');
   if (!el) return;
-  const w = el.clientWidth || 900, h = 150;
+  const w = el.clientWidth || 900, h = 190;
   const svg = d3.select('#heroViz').attr('viewBox', `0 0 ${w} ${h}`);
 
-  const totalDots = 360;
-  const totalCount = d3.sum(fuelMix, d => d.count);
-  let dotList = [];
-  fuelMix.forEach(f => {
-    const n = Math.max(1, Math.round(totalDots * f.count / totalCount));
-    for (let i = 0; i < n; i++) dotList.push(f.fuel);
+  const defs = svg.append('defs');
+  const shadow = defs.append('filter').attr('id', 'bubbleShadow')
+    .attr('x', '-60%').attr('y', '-60%').attr('width', '220%').attr('height', '220%');
+  shadow.append('feDropShadow')
+    .attr('dx', 0).attr('dy', 2).attr('stdDeviation', 2)
+    .attr('flood-color', '#000').attr('flood-opacity', 0.3);
+
+  FUEL_ORDER.forEach(f => {
+    const grad = defs.append('radialGradient')
+      .attr('id', 'grad-' + f).attr('cx', '35%').attr('cy', '30%').attr('r', '75%');
+    grad.append('stop').attr('offset', '0%').attr('stop-color', d3.color(FUEL_COLORS[f]).brighter(1.15).toString());
+    grad.append('stop').attr('offset', '100%').attr('stop-color', FUEL_COLORS[f]);
   });
-  dotList = dotList.slice(0, totalDots);
-  while (dotList.length < totalDots) dotList.push('Other');
-  for (let i = dotList.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [dotList[i], dotList[j]] = [dotList[j], dotList[i]];
-  }
 
-  const cols = 36;
-  const rows = Math.ceil(totalDots / cols);
-  const cellW = w / cols, cellH = h / rows;
-  const rTarget = Math.min(cellW, cellH) * 0.28;
+  const totalBubbles = 130;
+  const totalCount = d3.sum(fuelMix, d => d.count);
+  const avgCapByFuel = {};
+  fuelMix.forEach(f => { avgCapByFuel[f.fuel] = f.capacity_mw / f.count; });
+  const maxAvgCap = d3.max(Object.values(avgCapByFuel));
+  const rScale = d3.scaleSqrt().domain([0, maxAvgCap]).range([2.5, 40]);
 
-  const dots = svg.selectAll('circle').data(dotList).enter().append('circle')
-    .attr('class', 'hero-dot')
-    .attr('cx', (d, i) => (i % cols + 0.5) * cellW)
-    .attr('cy', (d, i) => (Math.floor(i / cols) + 0.5) * cellH)
+  const colWidth = w / FUEL_ORDER.length;
+  let nodes = [];
+  FUEL_ORDER.forEach((f, colIdx) => {
+    const rec = fuelMix.find(x => x.fuel === f);
+    const n = Math.max(3, Math.round(totalBubbles * rec.count / totalCount));
+    const baseR = rScale(avgCapByFuel[f]);
+    const colCenter = colWidth * (colIdx + 0.5);
+    for (let i = 0; i < n; i++) {
+      nodes.push({
+        fuel: f,
+        r: baseR * (0.78 + Math.random() * 0.44),
+        targetX: colCenter,
+        x: colCenter + (Math.random() - 0.5) * 20,
+        y: h/2 + (Math.random() - 0.5) * 20
+      });
+    }
+  });
+
+  const sim = d3.forceSimulation(nodes)
+    .force('x', d3.forceX(d => d.targetX).strength(0.12))
+    .force('y', d3.forceY(h/2 - 6).strength(0.06))
+    .force('collide', d3.forceCollide(d => d.r + 1.5).strength(0.9))
+    .stop();
+  for (let i = 0; i < 160; i++) sim.tick();
+
+  const bubbles = svg.selectAll('circle').data(nodes).enter().append('circle')
+    .attr('cx', d => d.x).attr('cy', d => d.y)
     .attr('r', 0)
-    .attr('fill', d => FUEL_COLORS[d])
-    .attr('opacity', 0)
-    .on('mousemove', (evt, d) => showTip(`<strong>${d}</strong><br>one of ${fmtNum(fuelMix.find(f=>f.fuel===d).count)} ${d.toLowerCase()} plants`, evt))
+    .attr('fill', d => `url(#grad-${d.fuel})`)
+    .attr('filter', 'url(#bubbleShadow)')
+    .on('mousemove', (evt, d) => {
+      const rec = fuelMix.find(f => f.fuel === d.fuel);
+      showTip(`<strong>${d.fuel}</strong><br>${fmtNum(rec.count)} plants · avg ${Math.round(avgCapByFuel[d.fuel])} MW each`, evt);
+    })
     .on('mouseleave', hideTip);
 
-  dots.transition()
-    .delay((d, i) => i * 4)
-    .duration(500)
-    .ease(d3.easeBackOut.overshoot(1.6))
-    .attr('r', rTarget)
-    .attr('opacity', 0.88);
+  bubbles.transition()
+    .delay((d, i) => i * 9)
+    .duration(650)
+    .ease(d3.easeElasticOut.amplitude(1).period(0.5))
+    .attr('r', d => d.r);
 
-  function pulse(){
-    dots.transition().duration(1900).ease(d3.easeSinInOut)
-      .attr('opacity', 0.5)
-      .transition().duration(1900).ease(d3.easeSinInOut)
-      .attr('opacity', 0.88)
-      .on('end', function(d, i){ if (i === 0) pulse(); });
+  FUEL_ORDER.forEach((f, colIdx) => {
+    svg.append('text')
+      .attr('x', colWidth * (colIdx + 0.5)).attr('y', h - 4)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'IBM Plex Mono').attr('font-size', 10.5).attr('font-weight', 600)
+      .attr('fill', 'var(--ink-soft)').attr('opacity', 0)
+      .text(f)
+      .transition().delay(900).duration(400).attr('opacity', 1);
+  });
+
+  function idleFloat(){
+    bubbles.transition().duration(2600 + Math.random()*400).ease(d3.easeSinInOut)
+      .attr('cy', d => d.y + (Math.random() - 0.5) * 6)
+      .transition().duration(2600 + Math.random()*400).ease(d3.easeSinInOut)
+      .attr('cy', d => d.y)
+      .on('end', function(d, i){ if (i === 0) idleFloat(); });
   }
-  setTimeout(pulse, totalDots * 4 + 600);
+  setTimeout(idleFloat, 1600);
 
   animateCounters('#heroStats .num', 1700);
 })();
@@ -69,7 +106,8 @@ const projection = d3.geoNaturalEarth1().scale(155).translate([mapW/2, mapH/2 + 
 const path = d3.geoPath(projection);
 
 const landFeature = topojson.feature(land, land.objects.land);
-svgMap.append('path')
+const zoomG = svgMap.append('g').attr('class', 'zoomLayer');
+zoomG.append('path')
   .datum(landFeature)
   .attr('d', path)
   .attr('fill', '#DDE6E0')
@@ -80,7 +118,16 @@ const sqrtScale = d3.scaleSqrt()
   .domain([0, d3.max(mapData, d => d.cap)])
   .range([0.6, 15]);
 
-const dotLayer = svgMap.append('g');
+const dotLayer = zoomG.append('g');
+
+const mapZoom = d3.zoom()
+  .scaleExtent([1, 8])
+  .translateExtent([[0, 0], [mapW, mapH]])
+  .on('zoom', (evt) => {
+    zoomG.attr('transform', evt.transform);
+    dotLayer.selectAll('circle').attr('stroke-width', 0.4 / evt.transform.k);
+  });
+svgMap.call(mapZoom).style('cursor', 'grab');
 
 let activeFuels = new Set(FUEL_ORDER);
 
@@ -133,89 +180,82 @@ FUEL_ORDER.forEach(f => {
   it.append('span').text(f);
 });
 
-/* ===================== FUEL MIX (capacity) ===================== */
+/* ===================== FUEL COUNT vs CAPACITY SCATTER ===================== */
 (function(){
-  const data = fuelMix.slice().sort((a,b) => b.capacity_mw - a.capacity_mw);
-  const w = document.getElementById('mixChart').clientWidth || 480, h = 340;
-  const margin = {top:10, right:70, bottom:30, left:70};
-  const svg = d3.select('#mixChart').attr('viewBox', `0 0 ${w} ${h}`);
+  const data = fuelMix;
+  const totalCap = d3.sum(data, d => d.capacity_mw);
+  const totalN = d3.sum(data, d => d.count);
+  const w = document.getElementById('fuelScatter').clientWidth || 900, h = 420;
+  const margin = {top:24, right:40, bottom:50, left:70};
+  const svg = d3.select('#fuelScatter').attr('viewBox', `0 0 ${w} ${h}`);
   const iw = w - margin.left - margin.right, ih = h - margin.top - margin.bottom;
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
-  const y = d3.scaleBand().domain(data.map(d=>d.fuel)).range([0, ih]).padding(0.32);
-  const x = d3.scaleLinear().domain([0, d3.max(data,d=>d.capacity_mw)]).range([0, iw]);
+  const x = d3.scaleLog().domain([150, 12000]).range([0, iw]);
+  const y = d3.scaleLog().domain([50000, 2200000]).range([ih, 0]);
+  const rScale = d3.scaleSqrt().domain([0, d3.max(data, d=>d.capacity_mw)]).range([14, 62]);
 
-  g.selectAll('rect').data(data).enter().append('rect')
-    .attr('y', d => y(d.fuel))
-    .attr('x', 0)
-    .attr('height', y.bandwidth())
-    .attr('width', d => x(d.capacity_mw))
+  g.append('g').attr('class','axis')
+    .attr('transform', `translate(0,${ih})`)
+    .call(d3.axisBottom(x).ticks(5, '~s').tickSize(-ih))
+    .call(gg => gg.selectAll('.tick line').attr('stroke-opacity', 0.12))
+    .call(gg => gg.select('.domain').remove());
+
+  g.append('g').attr('class','axis')
+    .call(d3.axisLeft(y).ticks(5, '~s').tickSize(-iw))
+    .call(gg => gg.selectAll('.tick line').attr('stroke-opacity', 0.12))
+    .call(gg => gg.select('.domain').remove());
+
+  g.append('text').attr('x', iw/2).attr('y', ih + 40)
+    .attr('text-anchor','middle').attr('font-family','IBM Plex Mono').attr('font-size',11).attr('fill','var(--ink-soft)')
+    .text('Number of plants (log scale) →');
+  g.append('text').attr('transform', 'rotate(-90)').attr('x', -ih/2).attr('y', -52)
+    .attr('text-anchor','middle').attr('font-family','IBM Plex Mono').attr('font-size',11).attr('fill','var(--ink-soft)')
+    .text('Total installed capacity, MW (log scale) →');
+
+  const detailNote = d3.select('#fuelDetailNote');
+  let selected = null;
+
+  const nodes = g.selectAll('.fuelNode').data(data).enter().append('g')
+    .attr('class','fuelNode')
+    .attr('transform', d => `translate(${x(d.count)},${y(d.capacity_mw)})`)
+    .style('cursor','pointer');
+
+  nodes.append('circle')
+    .attr('r', 0)
     .attr('fill', d => FUEL_COLORS[d.fuel])
-    .attr('rx', 2)
-    .on('mousemove', (evt,d) => showTip(`<strong>${d.fuel}</strong><br>${fmtGW(d.capacity_mw)} installed<br>${fmtNum(d.count)} plants`, evt))
-    .on('mouseleave', hideTip);
+    .attr('fill-opacity', 0.82)
+    .attr('stroke', 'var(--panel)')
+    .attr('stroke-width', 1.5)
+    .on('mousemove', (evt,d) => showTip(`<strong>${d.fuel}</strong><br>${fmtNum(d.count)} plants · ${fmtGW(d.capacity_mw)}<br>avg ${Math.round(d.capacity_mw/d.count)} MW/plant`, evt))
+    .on('mouseleave', hideTip)
+    .transition().delay((d,i)=>i*80).duration(500).ease(d3.easeBackOut.overshoot(1.4))
+    .attr('r', d => rScale(d.capacity_mw));
 
-  g.selectAll('.lbl').data(data).enter().append('text')
-    .attr('y', d => y(d.fuel) + y.bandwidth()/2)
-    .attr('x', -8)
-    .attr('text-anchor', 'end')
-    .attr('dominant-baseline', 'middle')
-    .attr('font-family', 'IBM Plex Mono')
-    .attr('font-size', 12).attr('font-weight', 600)
-    .attr('fill', 'var(--ink)')
-    .text(d => d.fuel);
+  nodes.append('text')
+    .attr('text-anchor','middle').attr('dominant-baseline','middle')
+    .attr('font-family','IBM Plex Mono').attr('font-weight',700)
+    .attr('font-size', d => Math.max(9, rScale(d.capacity_mw)*0.3))
+    .attr('fill', d => (d.fuel==='Solar' ? 'var(--ink)' : '#fff'))
+    .style('pointer-events','none')
+    .attr('opacity', 0)
+    .text(d => d.fuel)
+    .transition().delay((d,i)=>i*80+300).duration(300).attr('opacity',1);
 
-  g.selectAll('.val').data(data).enter().append('text')
-    .attr('y', d => y(d.fuel) + y.bandwidth()/2)
-    .attr('x', d => x(d.capacity_mw) + 8)
-    .attr('dominant-baseline', 'middle')
-    .attr('font-family', 'IBM Plex Mono')
-    .attr('font-size', 11.5).attr('font-weight', 600)
-    .attr('fill', 'var(--ink)')
-    .text(d => fmtGW(d.capacity_mw));
-})();
-
-/* ===================== PLANT COUNT (by fuel) ===================== */
-(function(){
-  const data = fuelMix.slice().sort((a,b) => b.count - a.count);
-  const w = document.getElementById('countChart').clientWidth || 480, h = 220;
-  const margin = {top:6, right:14, bottom:26, left:70};
-  const svg = d3.select('#countChart').attr('viewBox', `0 0 ${w} ${h}`);
-  const iw = w - margin.left - margin.right, ih = h - margin.top - margin.bottom;
-  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
-
-  const y = d3.scaleBand().domain(data.map(d=>d.fuel)).range([0, ih]).padding(0.28);
-  const x = d3.scaleLinear().domain([0, d3.max(data,d=>d.count)]).range([0, iw]);
-
-  g.selectAll('rect').data(data).enter().append('rect')
-    .attr('y', d => y(d.fuel))
-    .attr('x', 0)
-    .attr('height', y.bandwidth())
-    .attr('width', d => x(d.count))
-    .attr('fill', d => FUEL_COLORS[d.fuel])
-    .attr('fill-opacity', 0.85)
-    .attr('rx', 2)
-    .on('mousemove', (evt,d) => showTip(`<strong>${d.fuel}</strong><br>${fmtNum(d.count)} plants`, evt))
-    .on('mouseleave', hideTip);
-
-  g.selectAll('.lbl').data(data).enter().append('text')
-    .attr('y', d => y(d.fuel) + y.bandwidth()/2)
-    .attr('x', -8)
-    .attr('text-anchor', 'end')
-    .attr('dominant-baseline', 'middle')
-    .attr('font-family', 'IBM Plex Mono')
-    .attr('font-size', 11.5).attr('font-weight', 600)
-    .attr('fill', 'var(--ink)')
-    .text(d => d.fuel);
-
-  g.selectAll('.val').data(data).enter().append('text')
-    .attr('y', d => y(d.fuel) + y.bandwidth()/2)
-    .attr('x', d => x(d.count) + 8)
-    .attr('dominant-baseline', 'middle')
-    .attr('font-family', 'IBM Plex Mono')
-    .attr('font-size', 11).attr('font-weight', 600)
-    .attr('fill', 'var(--ink)')
-    .text(d => fmtNum(d.count));
+  nodes.on('click', function(evt, d){
+    selected = (selected === d.fuel) ? null : d.fuel;
+    nodes.select('circle').transition().duration(300)
+      .attr('fill-opacity', dd => !selected || dd.fuel===selected ? 0.9 : 0.22)
+      .attr('stroke-width', dd => dd.fuel===selected ? 3 : 1.5);
+    if (selected){
+      const capShare = ((d.capacity_mw/totalCap)*100).toFixed(1);
+      const countShare = ((d.count/totalN)*100).toFixed(1);
+      detailNote.html(`<strong>${d.fuel}</strong> — ${fmtGW(d.capacity_mw)} (${capShare}% of world capacity) across ${fmtNum(d.count)} plants (${countShare}% of all plants tracked). Average size: ${Math.round(d.capacity_mw/d.count)} MW. Click again to clear.`)
+        .style('opacity',1);
+    } else {
+      detailNote.style('opacity',0);
+    }
+  });
 })();
 
 /* ===================== TOP COUNTRIES (stacked horizontal, sortable + click-to-pin) ===================== */
@@ -225,7 +265,8 @@ FUEL_ORDER.forEach(f => {
   const svg = d3.select('#countryChart').attr('viewBox', `0 0 ${w} ${h}`);
   const iw = w - margin.left - margin.right, ih = h - margin.top - margin.bottom;
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
-  const pinNote = d3.select('#countryPinNote');
+  const detailPanel = document.getElementById('countryDetailPanel');
+  const detailLabel = d3.select('#countryDetailLabel');
 
   const x = d3.scaleLinear().domain([0, d3.max(countries, d=>d.total_mw)]).range([0, iw]);
   const y = d3.scaleBand().domain(countries.map(d=>d.country)).range([0, ih]).padding(0.28);
@@ -311,17 +352,55 @@ FUEL_ORDER.forEach(f => {
         .style('opacity', d => pinned && d.country !== pinned ? 0.4 : 1);
   }
 
+  function renderCountryDetail(country){
+    const rec = countries.find(c => c.country === country);
+    const total = rec.total_mw;
+    const segs = FUEL_ORDER.map(f => ({fuel: f, value: rec[f] || 0})).filter(d => d.value > 0);
+
+    const dw = document.getElementById('countryDetailChart').clientWidth || 900, dh = 100;
+    const dsvg = d3.select('#countryDetailChart').attr('viewBox', `0 0 ${dw} ${dh}`);
+    dsvg.selectAll('*').remove();
+    const dg = dsvg.append('g').attr('transform', 'translate(0,10)');
+
+    const dx = d3.scaleLinear().domain([0, total]).range([0, dw]);
+    let cursor = 0;
+    const bars = dg.selectAll('rect').data(segs).enter().append('rect')
+      .attr('x', d => { const xp = dx(cursor); cursor += d.value; return xp; })
+      .attr('y', 0).attr('height', 34)
+      .attr('width', 0)
+      .attr('fill', d => FUEL_COLORS[d.fuel])
+      .attr('fill-opacity', 0.92)
+      .on('mousemove', (evt,d) => showTip(`<strong>${d.fuel}</strong><br>${fmtGW(d.value)} · ${((d.value/total)*100).toFixed(1)}%`, evt))
+      .on('mouseleave', hideTip);
+
+    bars.transition().duration(600).ease(d3.easeCubicOut)
+      .attr('width', d => Math.max(0, dx(d.value)));
+
+    let acc = 0;
+    const withCenter = segs.map(d => {
+      const centerX = dx(acc) + dx(d.value)/2;
+      acc += d.value;
+      return {...d, centerX};
+    }).filter(d => d.value/total > 0.05);
+
+    dg.selectAll('text').data(withCenter).enter().append('text')
+      .attr('x', d => d.centerX).attr('y', 34 + 18)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'IBM Plex Mono').attr('font-size', 10.5).attr('font-weight', 600)
+      .attr('fill', 'var(--soft-on-dark)')
+      .attr('opacity', 0)
+      .text(d => d.fuel)
+      .transition().delay(500).duration(300).attr('opacity', 1);
+  }
+
   function togglePin(country){
     pinned = (pinned === country) ? null : country;
     if (pinned){
-      const rec = countries.find(c => c.country === pinned);
-      const solarShare = ((rec.Solar / rec.total_mw) * 100).toFixed(1);
-      const fossil = rec.Coal + rec.Gas + rec.Oil;
-      const fossilShare = ((fossil / rec.total_mw) * 100).toFixed(1);
-      pinNote.html(`<strong>${rec.country}</strong> — ${fmtGW(rec.total_mw)} total · ${solarShare}% solar · ${fossilShare}% fossil fuels. Click again to clear.`)
-        .style('opacity', 1);
+      detailLabel.text(pinned);
+      detailPanel.style.display = 'block';
+      renderCountryDetail(pinned);
     } else {
-      pinNote.style('opacity', 0);
+      detailPanel.style.display = 'none';
     }
     render();
   }

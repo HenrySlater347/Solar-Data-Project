@@ -77,32 +77,21 @@
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; flex-wrap:wrap; gap:10px;">
         <div class="legend" id="mapLegend"></div>
         <div class="note" id="mapCount" style="margin-top:0; border:none; padding-left:0;"></div>
+        <div class="note" style="margin-top:0; border:none; padding-left:0; opacity:.65;">Scroll to zoom · drag to pan</div>
       </div>
     </div>
   </section>
 
   <section>
     <div class="wrap">
-      <div class="twocol">
-        <div>
-          <div class="section-head" style="margin-bottom:20px;">
-            <div class="eyebrow">Fuel mix</div>
-            <h2 style="font-size:1.5rem;">What's actually installed</h2>
-          </div>
-          <div class="panel">
-            <svg id="mixChart" style="width:100%; height:340px; display:block;"></svg>
-          </div>
-        </div>
-        <div>
-          <div class="section-head" style="margin-bottom:20px;">
-            <div class="eyebrow">By plant count</div>
-            <h2 style="font-size:1.5rem;">Solar plants are everywhere — just small</h2>
-          </div>
-          <div class="panel">
-            <p style="font-size:.95rem; color:var(--ink-soft); margin-bottom:14px;">Coal and gas plants generate most of the world's capacity from relatively few, enormous stations. Solar does the opposite: <strong style="color:var(--ink);">10,665 separate installations</strong> — the single largest fuel category by plant count in this dataset — averaging just 17.7 MW each.</p>
-            <svg id="countChart" style="width:100%; height:220px; display:block;"></svg>
-          </div>
-        </div>
+      <div class="section-head" style="margin-bottom:20px;">
+        <div class="eyebrow">The paradox</div>
+        <h2>Many tiny plants, or a few enormous ones — never both</h2>
+        <p>Every fuel sits somewhere on this trade-off. Bubble size is each fuel's total installed capacity. Click a bubble for the full breakdown.</p>
+      </div>
+      <div class="panel">
+        <svg id="fuelScatter" style="width:100%; height:420px; display:block;"></svg>
+        <div class="note" id="fuelDetailNote" style="opacity:0; transition:opacity .2s;"></div>
       </div>
     </div>
   </section>
@@ -120,7 +109,10 @@
       </div>
       <div class="panel" style="padding:22px 26px;">
         <svg id="countryChart" style="width:100%; height:640px; display:block;"></svg>
-        <div class="note" id="countryPinNote" style="border-color:var(--hair-dark); color:var(--soft-on-dark); opacity:0; transition:opacity .2s;"></div>
+        <div class="panel" id="countryDetailPanel" style="display:none; margin-top:16px; background:var(--dark-panel); border-color:var(--hair-dark);">
+          <div class="eyebrow" style="margin-bottom:10px;">Full fuel breakdown · <span id="countryDetailLabel"></span></div>
+          <svg id="countryDetailChart" style="width:100%; height:100px; display:block;"></svg>
+        </div>
       </div>
       <div class="legend" id="countryLegend" style="margin-top:16px;"></div>
     </div>
