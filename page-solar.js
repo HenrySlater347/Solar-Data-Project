@@ -64,6 +64,40 @@ const [econ, capByYear] = await Promise.all([
     .attr('text-anchor','end')
     .attr('font-family','IBM Plex Mono').attr('font-size', 13).attr('font-weight', 700).attr('fill','var(--ink)')
     .text(`${last.year}: $${last.value.toFixed(3)}`);
+
+  // full-width crosshair scrubber, snaps to nearest known year
+  const bisectYear = d3.bisector(d => d.year).left;
+  const guideLine = g.append('line')
+    .attr('y1', 0).attr('y2', ih)
+    .attr('stroke', 'var(--ink-soft)').attr('stroke-width', 1).attr('stroke-dasharray', '2,3')
+    .attr('opacity', 0).style('pointer-events', 'none');
+  const guideDot = g.append('circle')
+    .attr('r', 7).attr('fill', 'none').attr('stroke', '#E8AA2E').attr('stroke-width', 2.5)
+    .attr('opacity', 0).style('pointer-events', 'none');
+
+  g.append('rect')
+    .attr('x', 0).attr('y', 0).attr('width', iw).attr('height', ih)
+    .attr('fill', 'transparent')
+    .style('cursor', 'crosshair')
+    .on('mousemove', function(evt){
+      const [mx] = d3.pointer(evt, this);
+      const yr = x.invert(mx);
+      let idx = bisectYear(data, yr);
+      idx = Math.max(0, Math.min(data.length - 1, idx));
+      if (idx > 0) {
+        const d0 = data[idx - 1], d1 = data[idx];
+        if (!(yr - d0.year > d1.year - yr)) idx = idx - 1;
+      }
+      const d = data[idx];
+      guideLine.attr('x1', x(d.year)).attr('x2', x(d.year)).attr('opacity', 1);
+      guideDot.attr('cx', x(d.year)).attr('cy', y(d.value)).attr('opacity', 1);
+      showTip(`<strong>${d.year}</strong><br>$${d.value.toFixed(3)} / kWh`, evt);
+    })
+    .on('mouseleave', function(){
+      guideLine.attr('opacity', 0);
+      guideDot.attr('opacity', 0);
+      hideTip();
+    });
 })();
 
 /* ===================== MODULE PRICE COMPARISON ===================== */
@@ -164,6 +198,33 @@ const [econ, capByYear] = await Promise.all([
     .attr('x', x(2010)+7).attr('y', 16)
     .attr('font-family', 'IBM Plex Mono').attr('font-weight', 700).attr('font-size', 12.5).attr('fill', 'var(--solar)')
     .text('2010 →');
+
+  // year-scrubber slider: draggable guide line + live cumulative readout
+  const scrubLine = g.append('line')
+    .attr('y1', 0).attr('y2', ih)
+    .attr('stroke', 'var(--paper-on-dark)').attr('stroke-width', 1.5)
+    .style('pointer-events', 'none');
+  const scrubDot = g.append('circle')
+    .attr('r', 5).attr('fill', 'var(--paper-on-dark)')
+    .style('pointer-events', 'none');
+
+  const slider = document.getElementById('areaYearSlider');
+  const readout = d3.select('#areaYearReadout');
+
+  function updateScrub(yr){
+    const xp = x(yr);
+    scrubLine.attr('x1', xp).attr('x2', xp);
+    const rec = capByYear.find(r => r.year === yr) || capByYear[capByYear.length - 1];
+    const total = FUEL_ORDER.reduce((s,f) => s + rec[f], 0);
+    scrubDot.attr('cx', xp).attr('cy', y(total));
+    const solarShare = ((rec.Solar / total) * 100).toFixed(1);
+    readout.html(`<strong>${yr}</strong> — ${fmtGW(total)} cumulative installed · ${solarShare}% solar`);
+  }
+
+  if (slider) {
+    slider.addEventListener('input', () => updateScrub(+slider.value));
+    updateScrub(+slider.value);
+  }
 })();
 
 const legend = d3.select('#areaLegend');

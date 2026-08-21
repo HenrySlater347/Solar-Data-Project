@@ -43,6 +43,11 @@
 <section id="tab-grid" class="tab-panel">
 
   <header class="hero">
+    <div class="wrap">
+      <div class="hero-viz-wrap">
+        <svg id="heroViz" style="width:100%; height:150px; display:block;"></svg>
+      </div>
+    </div>
     <div class="wrap hero-grid">
       <div class="hero-copy">
         <div class="eyebrow">Global Power Plant Database</div>
@@ -50,10 +55,10 @@
         <p class="sub">Ask most people what the world's grid runs on and they'll say coal, or gas. They'd be wrong — and that gap between what people assume and what's actually true is the whole story here. Buried in this map of 34,936 real, named power stations is how the cheapest new electricity on the planet quietly became the fastest-growing, and what that's about to mean for your power bill, your climate, and the next decade of energy politics.</p>
       </div>
       <div class="hero-stats" id="heroStats">
-        <div class="stat"><span class="num">10,665</span><span class="lbl">solar plants — more than any other fuel, by count</span></div>
-        <div class="stat"><span class="num">34,936</span><span class="lbl">power plants tracked</span></div>
-        <div class="stat"><span class="num">5.7M MW</span><span class="lbl">combined capacity</span></div>
-        <div class="stat"><span class="num">167</span><span class="lbl">countries</span></div>
+        <div class="stat"><span class="num" data-value="10665" data-fmt="int">0</span><span class="lbl">solar plants — more than any other fuel, by count</span></div>
+        <div class="stat"><span class="num" data-value="34936" data-fmt="int">0</span><span class="lbl">power plants tracked</span></div>
+        <div class="stat"><span class="num" data-value="5700000" data-fmt="mw">0 MW</span><span class="lbl">combined capacity</span></div>
+        <div class="stat"><span class="num" data-value="167" data-fmt="int">0</span><span class="lbl">countries</span></div>
       </div>
     </div>
   </header>
@@ -107,10 +112,15 @@
       <div class="section-head">
         <div class="eyebrow">By country</div>
         <h2>The top 20, by installed capacity</h2>
-        <p>Each bar is split by fuel. Hover a segment for the number.</p>
+        <p>Each bar is split by fuel. Hover a segment for the number, or click a country to isolate it. Sort by total capacity or by solar capacity to see who's actually building.</p>
+      </div>
+      <div class="chiprow" id="countrySortRow" style="margin-bottom:16px;">
+        <div class="chip country-sort active" data-sort="total_mw"><span>Sort: total capacity</span></div>
+        <div class="chip country-sort" data-sort="Solar"><span>Sort: solar capacity</span></div>
       </div>
       <div class="panel" style="padding:22px 26px;">
         <svg id="countryChart" style="width:100%; height:640px; display:block;"></svg>
+        <div class="note" id="countryPinNote" style="border-color:var(--hair-dark); color:var(--soft-on-dark); opacity:0; transition:opacity .2s;"></div>
       </div>
       <div class="legend" id="countryLegend" style="margin-top:16px;"></div>
     </div>
@@ -175,6 +185,10 @@
       </div>
       <div class="panel">
         <svg id="areaChart" style="width:100%; height:460px; display:block;"></svg>
+        <div style="display:flex; align-items:center; gap:16px; margin-top:18px; flex-wrap:wrap;">
+          <input type="range" id="areaYearSlider" min="1950" max="2020" value="2020" step="1" style="flex:1; min-width:180px; accent-color:var(--solar);">
+          <div class="note" id="areaYearReadout" style="border:none; padding-left:0; margin-top:0; white-space:nowrap;"></div>
+        </div>
       </div>
       <div class="legend" id="areaLegend" style="margin-top:16px;"></div>
       <div class="note">Based on the ~17,400 plants in the <a href="https://www.wri.org/research/global-database-power-plants" target="_blank" rel="noopener" style="color:inherit;">Global Power Plant Database</a> (of 34,936 total) with a known commissioning year. Capacity is cumulative — each year adds that year's new plants on top of everything already standing.</div>
@@ -225,10 +239,14 @@
       <div class="section-head">
         <div class="eyebrow">From this dataset</div>
         <h2>The share of new capacity going to wind and solar has more than quintupled</h2>
-        <p>Looking only at plants with a known commissioning year, here's what share of newly added capacity went to fossil fuels versus wind + solar, by period. Even in 2015–19, roughly seven of every ten megawatts were still coal, gas, or oil — the cost curve has turned, but the construction pipeline hasn't fully caught up. That gap is the opportunity.</p>
+        <p>Looking only at plants with a known commissioning year, here's what share of newly added capacity went to fossil fuels versus wind + solar, by period. Even in 2015–19, roughly seven of every ten megawatts were still coal, gas, or oil — the cost curve has turned, but the construction pipeline hasn't fully caught up. That gap is the opportunity. <strong>Click a row</strong> to see the full fuel breakdown for that period.</p>
       </div>
       <div class="panel">
         <svg id="shareChart" style="width:100%; height:280px; display:block;"></svg>
+      </div>
+      <div class="panel" id="periodDetailPanel" style="margin-top:16px; display:none;">
+        <div class="eyebrow" style="margin-bottom:12px;">Full fuel breakdown · <span id="periodDetailLabel"></span></div>
+        <svg id="periodDetailChart" style="width:100%; height:100px; display:block;"></svg>
       </div>
       <div class="note">2020 is excluded as a period boundary because commissioning-date reporting for the most recent year is typically incomplete at time of data collection.</div>
     </div>

@@ -157,6 +157,13 @@ p{margin:0 0 1em 0;}
   gap:40px;
   align-items:center;
 }
+.hero-viz-wrap{
+  margin-bottom:18px;
+  border-bottom:1px solid var(--hair);
+  padding-bottom:14px;
+}
+.hero-viz-wrap svg{ overflow:visible; }
+.hero-dot{ cursor:default; }
 .hero-copy h1{
   font-size:clamp(1.9rem, 3.4vw, 2.9rem);
   max-width:17ch;
@@ -256,6 +263,9 @@ section.tight{padding:30px 0;}
 .chip .swatch{width:8px;height:8px;border-radius:50%;display:inline-block;}
 .chip.off{opacity:.38;}
 .chip:hover{border-color:var(--ink-soft);}
+.chip.country-sort{color:var(--soft-on-dark); border-color:var(--hair-dark);}
+.chip.country-sort.active{border-color:var(--solar); color:var(--paper-on-dark);}
+.chip.country-sort:hover{border-color:var(--solar);}
 
 /* ---------------- LEGEND ---------------- */
 .legend{display:flex; flex-wrap:wrap; gap:16px; font-family:var(--mono); font-size:.76rem; color:var(--ink-soft);}

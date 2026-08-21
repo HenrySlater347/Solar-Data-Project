@@ -38,3 +38,23 @@ function fmtGW(mw){
 function fmtNum(n){
   return n.toLocaleString();
 }
+
+/* ---- count-up number animation, used on hero stat blocks ---- */
+function formatCounterValue(v, fmt){
+  if (fmt === 'mw') return (v/1e6).toFixed(1) + 'M MW';
+  return Math.round(v).toLocaleString();
+}
+function animateCounters(selector, duration){
+  duration = duration || 1400;
+  d3.selectAll(selector).each(function(){
+    const el = d3.select(this);
+    const target = +el.attr('data-value');
+    const fmt = el.attr('data-fmt') || 'int';
+    if (isNaN(target)) return;
+    el.transition().duration(duration).ease(d3.easeCubicOut)
+      .tween('text', function(){
+        const i = d3.interpolateNumber(0, target);
+        return function(t){ this.textContent = formatCounterValue(i(t), fmt); };
+      });
+  });
+}
