@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRID://DATA — 34,936 Power Plants, The Cost Collapse &amp; What Comes Next</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="d3.min.js"></script>
+<script src="topojson-client.min.js"></script>
+<style>
+  /* ---- tab nav ---- */
+  .navlinks button.tabbtn{
+    background:none; border:none; border-bottom:2px solid transparent;
+    font-family:var(--mono); font-size:.82rem; color:var(--ink-soft);
+    padding:6px 2px; margin:0; cursor:pointer; white-space:nowrap;
+    transition:color .15s, border-color .15s;
+  }
+  .navlinks button.tabbtn:hover, .navlinks button.tabbtn.active{
+    color:var(--ink); border-color:var(--solar);
+  }
+  .tab-panel[hidden]{display:none;}
+</style>
+</head>
+<body>
+
+<nav class="sitenav">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="dot"></span>GRID://DATA</a>
+    <div class="navlinks">
+      <button class="tabbtn active" data-tab="grid">01 · The Grid</button>
+      <button class="tabbtn" data-tab="solar">02 · The Collapse</button>
+      <button class="tabbtn" data-tab="action">03 · The Shift</button>
+      <a href="sources.html">Sources</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================================================ -->
+<!-- TAB 1 — THE GRID                                              -->
+<!-- ============================================================ -->
+<section id="tab-grid" class="tab-panel">
+
+  <header class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <div class="eyebrow">Global Power Plant Database</div>
+        <h1>There are more solar plants on Earth<br>than any other kind of power plant.</h1>
+        <p class="sub">Ask most people what the world's grid runs on and they'll say coal, or gas. They'd be wrong — and that gap between what people assume and what's actually true is the whole story here. Buried in this map of 34,936 real, named power stations is how the cheapest new electricity on the planet quietly became the fastest-growing, and what that's about to mean for your power bill, your climate, and the next decade of energy politics.</p>
+      </div>
+      <div class="hero-stats" id="heroStats">
+        <div class="stat"><span class="num">10,665</span><span class="lbl">solar plants — more than any other fuel, by count</span></div>
+        <div class="stat"><span class="num">34,936</span><span class="lbl">power plants tracked</span></div>
+        <div class="stat"><span class="num">5.7M MW</span><span class="lbl">combined capacity</span></div>
+        <div class="stat"><span class="num">167</span><span class="lbl">countries</span></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="tight">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Explore</div>
+        <h2>Where the power lives</h2>
+        <p>Plants are grouped into 2°×2° grid cells — literal squares on the grid — sized by combined capacity. Toggle a fuel to isolate it.</p>
+      </div>
+      <div class="chiprow" id="fuelChips"></div>
+      <div class="panel" style="padding:0; overflow:hidden;">
+        <svg id="mapSvg" style="width:100%; height:auto; display:block;"></svg>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; flex-wrap:wrap; gap:10px;">
+        <div class="legend" id="mapLegend"></div>
+        <div class="note" id="mapCount" style="margin-top:0; border:none; padding-left:0;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="twocol">
+        <div>
+          <div class="section-head" style="margin-bottom:20px;">
+            <div class="eyebrow">Fuel mix</div>
+            <h2 style="font-size:1.5rem;">What's actually installed</h2>
+          </div>
+          <div class="panel">
+            <svg id="mixChart" style="width:100%; height:340px; display:block;"></svg>
+          </div>
+        </div>
+        <div>
+          <div class="section-head" style="margin-bottom:20px;">
+            <div class="eyebrow">By plant count</div>
+            <h2 style="font-size:1.5rem;">Solar plants are everywhere — just small</h2>
+          </div>
+          <div class="panel">
+            <p style="font-size:.95rem; color:var(--ink-soft); margin-bottom:14px;">Coal and gas plants generate most of the world's capacity from relatively few, enormous stations. Solar does the opposite: <strong style="color:var(--ink);">10,665 separate installations</strong> — the single largest fuel category by plant count in this dataset — averaging just 17.7 MW each.</p>
+            <svg id="countChart" style="width:100%; height:220px; display:block;"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dark-section gridpaper on-dark">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">By country</div>
+        <h2>The top 20, by installed capacity</h2>
+        <p>Each bar is split by fuel. Hover a segment for the number.</p>
+      </div>
+      <div class="panel" style="padding:22px 26px;">
+        <svg id="countryChart" style="width:100%; height:640px; display:block;"></svg>
+      </div>
+      <div class="legend" id="countryLegend" style="margin-top:16px;"></div>
+    </div>
+  </section>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- TAB 2 — THE COLLAPSE                                          -->
+<!-- ============================================================ -->
+<section id="tab-solar" class="tab-panel" hidden>
+
+  <header class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <div class="eyebrow">The Economics</div>
+        <h1>Solar didn't get popular.<br>It got <em style="font-style:italic; color:var(--solar);">cheap</em>.</h1>
+        <p class="sub">In 2010, building a solar farm cost more than four times as much as a coal plant, per unit of electricity. By 2024 it was the cheapest way to generate power almost anywhere on Earth.</p>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span class="num">−90%</span><span class="lbl">solar LCOE, 2010 → 2024</span></div>
+        <div class="stat"><span class="num">$0.417 → $0.043</span><span class="lbl">per kWh, global weighted avg.</span></div>
+        <div class="stat"><span class="num">−87%</span><span class="lbl">installed cost, per kW</span></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="tight">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">1 · Levelised cost of electricity</div>
+        <h2>The line every fossil fuel plant now competes against</h2>
+        <p>Global weighted-average cost to generate one kilowatt-hour from a newly built utility-scale solar plant, by year of commissioning.</p>
+      </div>
+      <div class="panel">
+        <svg id="lcoeChart" style="width:100%; height:420px; display:block;"></svg>
+      </div>
+      <div class="note">Source: <a href="https://www.irena.org/Publications/2024/Sep/Renewable-Power-Generation-Costs-in-2023" target="_blank" rel="noopener" style="color:inherit;">IRENA, <em>Renewable Power Generation Costs</em></a> (2018, 2020, 2023 &amp; 2024 editions). Figures are global weighted averages for the year of commissioning and are periodically revised by IRENA as more project data becomes available. Full source list on the <a href="sources.html" style="color:inherit; text-decoration:underline;">Sources page</a>.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">2 · The panel itself</div>
+        <h2>A module that cost $106 a watt now costs 38 cents</h2>
+        <p>Track the price of the physical hardware — the solar module — back to the 1970s, and the collapse looks almost impossible.</p>
+      </div>
+      <div class="panel" style="padding:36px;">
+        <svg id="moduleChart" style="width:100%; height:200px; display:block;"></svg>
+      </div>
+      <div class="note">Source: Nemet (2009); Farmer &amp; Lafond (2016); IRENA — compiled by <a href="https://ourworldindata.org/grapher/solar-pv-prices" target="_blank" rel="noopener" style="color:inherit;">Our World in Data</a>, adjusted to 2024 USD.</div>
+    </div>
+  </section>
+
+  <section class="dark-section gridpaper on-dark">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">3 · The dataset agrees</div>
+        <h2>34,936 real power plants tell the same story</h2>
+        <p>This is the actual build-out captured in the Global Power Plant Database — cumulative installed capacity by fuel, plotted by each plant's commissioning year. Watch what happens to the gold band after 2010.</p>
+      </div>
+      <div class="panel">
+        <svg id="areaChart" style="width:100%; height:460px; display:block;"></svg>
+      </div>
+      <div class="legend" id="areaLegend" style="margin-top:16px;"></div>
+      <div class="note">Based on the ~17,400 plants in the <a href="https://www.wri.org/research/global-database-power-plants" target="_blank" rel="noopener" style="color:inherit;">Global Power Plant Database</a> (of 34,936 total) with a known commissioning year. Capacity is cumulative — each year adds that year's new plants on top of everything already standing.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="twocol">
+        <div class="panel">
+          <div class="eyebrow">Scale</div>
+          <h3 style="font-size:1.3rem;">1,865 GW installed worldwide, end of 2024</h3>
+          <p style="color:var(--ink-soft); font-size:.95rem;">Up from 710 GW at the end of 2020 — solar PV capacity roughly two-and-a-half times over in four years, with 451 GW added in 2024 alone, more than any other power source.</p>
+        </div>
+        <div class="panel">
+          <div class="eyebrow">Competitiveness</div>
+          <h3 style="font-size:1.3rem;">41% cheaper than fossil fuels, on average</h3>
+          <p style="color:var(--ink-soft); font-size:.95rem;">By 2024, newly built solar was cheaper than the cheapest new fossil-fuel plant in the large majority of markets IRENA tracks — a full reversal from 2010, when it was over four times the price.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- TAB 3 — THE SHIFT                                             -->
+<!-- ============================================================ -->
+<section id="tab-action" class="tab-panel" hidden>
+
+  <header class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <div class="eyebrow">What the data asks of us</div>
+        <h1>The cheapest power on Earth<br>is now the <span style="color:var(--solar);">cleanest</span>.</h1>
+        <p class="sub">For most of history, going green meant paying more. That trade-off is over. The remaining gap is no longer economic — it's the speed of build-out, permitting, and political will.</p>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span class="num">21%</span><span class="lbl">of new capacity, 2015–19, was wind + solar</span></div>
+        <div class="stat"><span class="num">5×</span><span class="lbl">that share, vs. the 2000s</span></div>
+        <div class="stat"><span class="num">69%</span><span class="lbl">of new capacity was still fossil fuels</span></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="tight">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">From this dataset</div>
+        <h2>The share of new capacity going to wind and solar has more than quintupled</h2>
+        <p>Looking only at plants with a known commissioning year, here's what share of newly added capacity went to fossil fuels versus wind + solar, by period. Even in 2015–19, roughly seven of every ten megawatts were still coal, gas, or oil — the cost curve has turned, but the construction pipeline hasn't fully caught up. That gap is the opportunity.</p>
+      </div>
+      <div class="panel">
+        <svg id="shareChart" style="width:100%; height:280px; display:block;"></svg>
+      </div>
+      <div class="note">2020 is excluded as a period boundary because commissioning-date reporting for the most recent year is typically incomplete at time of data collection.</div>
+    </div>
+  </section>
+
+  <section class="dark-section" style="padding-top:44px;">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Four places to push</div>
+        <h2>What actually moves the build-out curve</h2>
+      </div>
+      <div class="fourcol">
+        <div class="action-tile">
+          <span class="n">01</span>
+          <h3>Speed up interconnection</h3>
+          <p>The biggest bottleneck for new solar and wind isn't cost anymore — it's the queue to connect to the grid. Support permitting reform and transmission investment locally and nationally.</p>
+        </div>
+        <div class="action-tile">
+          <span class="n">02</span>
+          <h3>Choose a cleaner supplier</h3>
+          <p>If your utility offers a renewable or green-tariff plan, switching sends real demand signals. Ask your provider directly what share of your power comes from solar and wind today.</p>
+        </div>
+        <div class="action-tile">
+          <span class="n">03</span>
+          <h3>Back storage, not just generation</h3>
+          <p>Solar's cost collapse only pays off fully when batteries can shift that power to when it's needed. Storage costs have fallen even faster than solar — support policy that treats them as a pair.</p>
+        </div>
+        <div class="action-tile">
+          <span class="n">04</span>
+          <h3>Make the numbers visible</h3>
+          <p>Most people still believe renewables cost more. Share what the data actually shows — with your city council, your workplace, your family — and let the economics do the arguing.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="panel" style="padding:44px; text-align:center;">
+        <div class="eyebrow" style="justify-content:center;">The one number that matters</div>
+        <h2 style="font-size:1.8rem; max-width:38ch; margin:0 auto 16px;">Solar is already the cheapest power on Earth. The only thing still slow is us.</h2>
+        <p style="max-width:56ch; margin:0 auto 26px; color:var(--ink-soft);">The grid took a century to build — and every year it isn't rebuilt faster is another year of paying more for dirtier power than we have to. The cost argument is over. Pick one of the four moves above, or put these numbers in front of someone who still thinks renewables cost extra. That's the actual bottleneck now.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center;">
+          <button class="cta-btn" id="copyLinkBtn" style="border:none;">Copy link to share</button>
+          <button class="cta-btn ghost tabbtn" data-tab="grid" style="color:var(--ink); border-color:var(--hair);">Explore the map</button>
+          <button class="cta-btn ghost tabbtn" data-tab="solar" style="color:var(--ink); border-color:var(--hair);">See the cost curve</button>
+        </div>
+        <p class="note" id="copyLinkNote" style="margin-top:14px; text-align:center; border:none; padding-left:0; opacity:0; transition:opacity .2s;">Link copied — go paste it somewhere it'll change a mind.</p>
+      </div>
+    </div>
+  </section>
+
+</section>
+
+<footer class="sitefoot">
+  <div class="wrap">
+    <div><a href="https://www.wri.org/research/global-database-power-plants" target="_blank" rel="noopener" style="color:inherit;">Global Power Plant Database, v1.3</a> (World Resources Institute) · cost data via IRENA &amp; Our World in Data. Not investment or utility advice.</div>
+    <div class="foot-links">
+      <button class="tabbtn" data-tab="grid" style="font-family:var(--mono); font-size:.78rem; color:inherit; background:none; border:none; cursor:pointer; padding:0;">The Grid</button>
+      <button class="tabbtn" data-tab="solar" style="font-family:var(--mono); font-size:.78rem; color:inherit; background:none; border:none; cursor:pointer; padding:0;">The Collapse</button>
+      <button class="tabbtn" data-tab="action" style="font-family:var(--mono); font-size:.78rem; color:inherit; background:none; border:none; cursor:pointer; padding:0;">The Shift</button>
+      <a href="sources.html">Sources</a>
+    </div>
+  </div>
+</footer>
+
+<div class="viz-tooltip" id="tooltip"></div>
+
+<script src="shared.js"></script>
+<script src="page-index.js"></script>
+<script src="page-solar.js"></script>
+<script src="page-action.js"></script>
+<script src="tabs.js"></script>
+<script>
+(function(){
+  const btn = document.getElementById('copyLinkBtn');
+  const note = document.getElementById('copyLinkNote');
+  if (!btn) return;
+  btn.addEventListener('click', async function(){
+    const shareUrl = location.origin + location.pathname + '#action';
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = shareUrl;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    note.style.opacity = 1;
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => { note.style.opacity = 0; }, 2600);
+  });
+})();
+</script>
+</body>
+</html>

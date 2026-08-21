@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sources — What This Site Is Built On</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .src-card{
+    border:1px solid var(--hair);
+    border-radius:var(--radius);
+    background:var(--panel);
+    padding:28px 30px;
+    margin-bottom:18px;
+    display:grid;
+    grid-template-columns:auto 1fr;
+    gap:26px;
+  }
+  .src-card .tag{
+    font-family:var(--mono);
+    font-size:.7rem;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--panel);
+    background:var(--ink);
+    padding:5px 10px;
+    border-radius:20px;
+    height:fit-content;
+    white-space:nowrap;
+  }
+  .src-card .tag.fossil{background:var(--fossil);}
+  .src-card .tag.solar{background:var(--solar); color:var(--ink);}
+  .src-card .tag.renew{background:var(--renew);}
+  .src-card .tag.nuclear{background:var(--nuclear);}
+  .src-card h3{font-size:1.2rem; margin-bottom:6px;}
+  .src-card p{color:var(--ink-soft); font-size:.95rem; margin-bottom:12px;}
+  .src-card .meta{
+    font-family:var(--mono); font-size:.78rem; color:var(--ink-soft);
+    display:flex; flex-wrap:wrap; gap:16px; margin-bottom:14px;
+  }
+  .src-card .meta span{white-space:nowrap;}
+  .src-links{display:flex; flex-wrap:wrap; gap:10px;}
+  .src-links a{
+    font-family:var(--mono); font-size:.8rem;
+    text-decoration:none;
+    color:var(--ink);
+    border:1px solid var(--hair);
+    border-radius:20px;
+    padding:6px 14px;
+    display:inline-flex; align-items:center; gap:6px;
+    transition:border-color .15s, background .15s;
+  }
+  .src-links a:hover{border-color:var(--ink); background:var(--paper-dim);}
+  .src-links a::after{content:'↗'; font-size:.85em; opacity:.6;}
+  .used-for{
+    font-size:.85rem; color:var(--ink-soft);
+    padding-top:10px; border-top:1px dashed var(--hair);
+  }
+  .used-for strong{color:var(--ink); font-weight:600;}
+  @media (max-width:700px){
+    .src-card{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<nav class="sitenav">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="dot"></span>GRID://DATA</a>
+    <div class="navlinks">
+      <a href="index.html#grid">01 · The Grid</a>
+      <a href="index.html#solar">02 · The Collapse</a>
+      <a href="index.html#action">03 · The Shift</a>
+      <a href="sources.html" class="active">Sources</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero gridpaper">
+  <div class="wrap">
+    <div class="eyebrow">Methodology &amp; Sources</div>
+    <h1>Everything on this site,<br>traced back to its source.</h1>
+    <p class="sub">One primary dataset — 34,936 real power plants — plus the economic research that explains why solar's story changed. Every number you saw links back to where it came from.</p>
+  </div>
+</header>
+
+<section class="tight">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Primary dataset</div>
+      <h2>The plants themselves</h2>
+      <p>Every dot on the map, every bar in the country and fuel-mix charts, and the entire build-out curve on the Collapse page come from this one dataset.</p>
+    </div>
+
+    <div class="src-card">
+      <span class="tag">Core dataset</span>
+      <div>
+        <h3>Global Power Plant Database, v1.3</h3>
+        <p>An open, facility-level database of power plants worldwide — capacity, location, primary fuel, ownership, and (where known) commissioning year — built and maintained by the World Resources Institute with Google Earth Outreach, Global Energy Observatory, KTH Royal Institute of Technology, and Enipedia.</p>
+        <div class="meta">
+          <span>34,936 plants · 167 countries</span>
+          <span>License: CC BY 4.0</span>
+          <span>Published by WRI</span>
+        </div>
+        <div class="src-links">
+          <a href="https://www.wri.org/research/global-database-power-plants" target="_blank" rel="noopener">WRI project page</a>
+          <a href="https://datasets.wri.org/dataset/globalpowerplantdatabase" target="_blank" rel="noopener">WRI Open Data Portal</a>
+          <a href="https://github.com/wri/global-power-plant-database" target="_blank" rel="noopener">GitHub repository</a>
+        </div>
+        <div class="used-for"><strong>Used for:</strong> the world grid-map, fuel-mix and plant-count charts, the top-20 countries chart, the cumulative capacity build-out (stacked area), and every headline count/capacity stat on the site.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Economic research</div>
+      <h2>Why solar got cheap</h2>
+      <p>The cost figures on the Collapse page are external research, layered on top of the plant dataset — they explain the economics <em>behind</em> the build-out pattern the plants themselves show.</p>
+    </div>
+
+    <div class="src-card">
+      <span class="tag solar">LCOE data</span>
+      <div>
+        <h3>IRENA — Renewable Power Generation Costs</h3>
+        <p>The International Renewable Energy Agency's annual benchmark report on the global weighted-average levelised cost of electricity (LCOE) for newly commissioned renewable plants, by technology and year of commissioning.</p>
+        <div class="meta">
+          <span>Editions used: 2018, 2020, 2023, 2024</span>
+          <span>Publisher: IRENA</span>
+        </div>
+        <div class="src-links">
+          <a href="https://www.irena.org/Publications/2024/Sep/Renewable-Power-Generation-Costs-in-2023" target="_blank" rel="noopener">2023 report</a>
+          <a href="https://www.irena.org/-/media/Files/IRENA/Agency/Publication/2025/Jul/IRENA_TEC_RPGC_in_2024_Summary_2025.pdf" target="_blank" rel="noopener">2024 report (PDF)</a>
+          <a href="https://www.irena.org/Energy-Transition/Technology/Solar-energy" target="_blank" rel="noopener">IRENA solar overview</a>
+          <a href="https://www.irena.org/Data/View-data-by-topic/Costs/Global-LCOE-and-Auction-values" target="_blank" rel="noopener">IRENA cost data explorer</a>
+        </div>
+        <div class="used-for"><strong>Used for:</strong> the $0.417 → $0.043/kWh LCOE curve, the 87% installed-cost decline, and the 1,865 GW / 451 GW deployment-scale stats.</div>
+      </div>
+    </div>
+
+    <div class="src-card">
+      <span class="tag renew">Price history</span>
+      <div>
+        <h3>Our World in Data — Solar Photovoltaic Panel Prices</h3>
+        <p>A compiled long-run price series for solar modules, stitching together Nemet (2009) for 1975–2003, Farmer &amp; Lafond (2016) for 2004–2009, and IRENA data from 2010 onward, inflation-adjusted to 2024 USD.</p>
+        <div class="meta">
+          <span>Coverage: 1975–2024</span>
+          <span>Publisher: Our World in Data (Oxford)</span>
+        </div>
+        <div class="src-links">
+          <a href="https://ourworldindata.org/grapher/solar-pv-prices" target="_blank" rel="noopener">Chart &amp; downloadable data</a>
+          <a href="https://ourworldindata.org/data-insights/solar-panel-prices-have-fallen-by-around-20-every-time-global-capacity-doubled" target="_blank" rel="noopener">Related analysis</a>
+        </div>
+        <div class="used-for"><strong>Used for:</strong> the $106/W (1976) → $0.38/W (2019) module-price comparison.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="tight">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Mapping &amp; libraries</div>
+      <h2>What draws the pixels</h2>
+      <p>No data here — just the open-source tools that render everything above.</p>
+    </div>
+
+    <div class="src-card">
+      <span class="tag nuclear">Geography</span>
+      <div>
+        <h3>Natural Earth, via world-atlas</h3>
+        <p>A simplified (110m resolution) world landmass outline, used as the basemap under the plant dots on The Grid.</p>
+        <div class="meta"><span>Public domain (Natural Earth)</span></div>
+        <div class="src-links">
+          <a href="https://github.com/topojson/world-atlas" target="_blank" rel="noopener">world-atlas repository</a>
+          <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="src-card">
+      <span class="tag">Visualization</span>
+      <div>
+        <h3>D3.js &amp; topojson-client</h3>
+        <p>Every chart on this site — the map, the area charts, the bars and lines — is hand-built with D3, rendering directly from the JSON files linked above.</p>
+        <div class="meta"><span>ISC License</span></div>
+        <div class="src-links">
+          <a href="https://d3js.org/" target="_blank" rel="noopener">d3js.org</a>
+          <a href="https://github.com/topojson/topojson-client" target="_blank" rel="noopener">topojson-client</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="panel">
+      <div class="eyebrow">Caveats, in the open</div>
+      <h3 style="font-size:1.2rem; margin-bottom:10px;">Where the numbers get soft</h3>
+      <ul style="color:var(--ink-soft); font-size:.92rem; line-height:1.7; padding-left:20px; margin:0;">
+        <li>Only about <strong style="color:var(--ink);">17,400 of the 34,936 plants</strong> (roughly half) have a known commissioning year. Every chart built from commissioning year — the build-out curve, the fossil-vs-renewable share on The Shift — reflects that known subset, not the full database.</li>
+        <li>IRENA revises its historical LCOE figures as new project data comes in, so a given year's value can differ slightly between report editions. The figures here use the most recent edition available for each anchor year.</li>
+        <li>Module price and LCOE are two different measures (hardware cost vs. full cost of generated electricity) and are shown as two separate charts rather than mixed into one, to keep the comparison honest.</li>
+        <li>This is not investment, utility, or policy advice — it's a public dataset, made explorable.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer class="sitefoot">
+  <div class="wrap">
+    <div><a href="https://www.wri.org/research/global-database-power-plants" target="_blank" rel="noopener" style="color:inherit;">Global Power Plant Database, v1.3</a> (World Resources Institute) · cost data via IRENA &amp; Our World in Data.</div>
+    <div class="foot-links">
+      <a href="index.html#grid">The Grid</a>
+      <a href="index.html#solar">The Collapse</a>
+      <a href="index.html#action">The Shift</a>
+      <a href="sources.html">Sources</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
