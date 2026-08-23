@@ -7,20 +7,26 @@ const [econ, capByYear] = await Promise.all([
 
 /* ===================== LCOE LINE CHART ===================== */
 (function(){
-  const data = econ.lcoe_usd_per_kwh;
+  // cap solar at 2023 so every line on this chart ends on the same year
+  const data = econ.lcoe_usd_per_kwh.filter(d => d.year <= 2023);
   const w = document.getElementById('lcoeChart').clientWidth || 900, h = 420;
   const margin = {top:30, right:100, bottom:40, left:64};
   const svg = d3.select('#lcoeChart').attr('viewBox', `0 0 ${w} ${h}`);
   const iw = w - margin.left - margin.right, ih = h - margin.top - margin.bottom;
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
-  const x = d3.scaleLinear().domain([2009, 2024]).range([0, iw]);
+  const LABEL_COLOR = 'var(--ink)';
+  const LABEL_SIZE = 12;
+
+  // small left inset so the earliest point never sits flush against the y-axis
+  const leftPad = 14;
+  const x = d3.scaleLinear().domain([2010, 2023]).range([leftPad, iw]);
   const y = d3.scaleLinear().domain([0, 0.45]).range([ih, 0]);
 
   // gridlines
   g.append('g').attr('class','axis')
     .attr('transform', `translate(0,${ih})`)
-    .call(d3.axisBottom(x).ticks(8).tickFormat(d3.format('d')).tickSize(-ih))
+    .call(d3.axisBottom(x).ticks(7).tickFormat(d3.format('d')).tickSize(-ih))
     .call(g => g.selectAll('.tick line').attr('stroke-opacity', 0.15))
     .call(g => g.select('.domain').remove());
 
@@ -55,24 +61,43 @@ const [econ, capByYear] = await Promise.all([
     .on('mousemove', (evt,d) => showTip(`<strong>${d.year}</strong><br>$${d.value.toFixed(3)} / kWh`, evt))
     .on('mouseleave', hideTip);
 
-  // annotate first & last
+  // annotate first & last — same color/size as every other label on this chart
   const first = data[0], last = data[data.length-1];
   g.append('text').attr('x', x(first.year)+8).attr('y', y(first.value)-14)
-    .attr('font-family','IBM Plex Mono').attr('font-size', 13).attr('font-weight', 600).attr('fill','var(--ink)')
+    .attr('font-family','IBM Plex Mono').attr('font-size', LABEL_SIZE).attr('font-weight', 700).attr('fill', LABEL_COLOR)
     .text(`${first.year}: $${first.value.toFixed(3)}`);
   g.append('text').attr('x', x(last.year)-8).attr('y', y(last.value)-16)
     .attr('text-anchor','end')
-    .attr('font-family','IBM Plex Mono').attr('font-size', 13).attr('font-weight', 700).attr('fill','var(--ink)')
+    .attr('font-family','IBM Plex Mono').attr('font-size', LABEL_SIZE).attr('font-weight', 700).attr('fill', LABEL_COLOR)
     .text(`${last.year}: $${last.value.toFixed(3)}`);
 
-  // ---- comparison lines: coal, gas, nuclear (flat/rising, for scale) ----
-  const compData = econ.lcoe_comparison_usd_per_kwh || {};
+  // ---- comparison lines: coal, gas, nuclear ----
+  // Lazard only gives us 2009 & 2023 anchor points; interpolate a 2010 value
+  // so these lines start on the same year as solar instead of poking out past the axis.
+  function interpAt(series, year){
+    if (year <= series[0].year) return series[0].value;
+    if (year >= series[series.length-1].year) return series[series.length-1].value;
+    for (let i = 0; i < series.length - 1; i++){
+      const a = series[i], b = series[i+1];
+      if (year >= a.year && year <= b.year){
+        const t = (year - a.year) / (b.year - a.year);
+        return a.value + t * (b.value - a.value);
+      }
+    }
+    return series[series.length-1].value;
+  }
+
+  const compDataRaw = econ.lcoe_comparison_usd_per_kwh || {};
   const compColors = {Coal: 'var(--fossil)', Gas: '#9C6B3E', Nuclear: 'var(--nuclear)'};
   const compLine = d3.line().x(d => x(d.year)).y(d => y(d.value));
 
   const compLabels = []; // collect for collision avoidance
-  Object.keys(compData).forEach(fuel => {
-    const series = compData[fuel];
+  Object.keys(compDataRaw).forEach(fuel => {
+    const raw = compDataRaw[fuel];
+    const series = [
+      {year: 2010, value: interpAt(raw, 2010)},
+      {year: 2023, value: interpAt(raw, 2023)}
+    ];
     g.append('path').datum(series).attr('d', compLine)
       .attr('fill', 'none').attr('stroke', compColors[fuel] || 'var(--ink-soft)')
       .attr('stroke-width', 2).attr('stroke-dasharray', '5,4').attr('opacity', 0.85);
@@ -85,7 +110,7 @@ const [econ, capByYear] = await Promise.all([
 
     const endPt = series[series.length - 1];
     compLabels.push({
-      fuel, value: endPt.value, color: compColors[fuel] || 'var(--ink-soft)',
+      fuel, value: endPt.value, lineColor: compColors[fuel] || 'var(--ink-soft)',
       anchorX: x(endPt.year), anchorY: y(endPt.value),
       x: iw + 10, y: y(endPt.value)
     });
@@ -102,10 +127,11 @@ const [econ, capByYear] = await Promise.all([
     g.append('line')
       .attr('x1', d.anchorX).attr('y1', d.anchorY)
       .attr('x2', d.x - 4).attr('y2', d.y)
-      .attr('stroke', d.color).attr('stroke-width', 1).attr('stroke-dasharray', '1,2').attr('opacity', 0.6);
+      .attr('stroke', d.lineColor).attr('stroke-width', 1).attr('stroke-dasharray', '1,2').attr('opacity', 0.6);
+    // label text is uniform color/size across every line — only the line itself keeps its distinct color
     g.append('text').attr('x', d.x).attr('y', d.y + 4)
-      .attr('font-family', 'IBM Plex Mono').attr('font-size', 11).attr('font-weight', 700)
-      .attr('fill', d.color)
+      .attr('font-family', 'IBM Plex Mono').attr('font-size', LABEL_SIZE).attr('font-weight', 700)
+      .attr('fill', LABEL_COLOR)
       .text(`${d.fuel}: $${d.value.toFixed(3)}`);
   });
 

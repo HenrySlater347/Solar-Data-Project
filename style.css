@@ -88,6 +88,28 @@ p{margin:0 0 1em 0;}
   background:var(--ink-soft);
   display:inline-block;
 }
+.chapter-tag{
+  font-family:var(--mono);
+  font-size:.7rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--solar);
+  font-weight:700;
+  margin-bottom:10px;
+}
+.dark-section .chapter-tag{color:var(--solar);}
+.bridge{
+  max-width:64ch;
+  margin:0 auto 6px;
+  padding:22px 0;
+  font-family:var(--display);
+  font-size:1.15rem;
+  font-weight:500;
+  color:var(--ink-soft);
+  text-align:center;
+  border-top:1px dashed var(--hair);
+}
+.dark-section .bridge{color:var(--soft-on-dark); border-top:1px dashed var(--hair-dark);}
 
 .wrap{max-width:var(--maxw); margin:0 auto; padding:0 32px;}
 
@@ -269,6 +291,7 @@ section.tight{padding:30px 0;}
 
 /* ---------------- LEGEND ---------------- */
 .legend{display:flex; flex-wrap:wrap; gap:16px; font-family:var(--mono); font-size:.76rem; color:var(--ink-soft);}
+.dark-section .legend{color:var(--paper-on-dark); font-weight:700;}
 .legend .item{display:flex; align-items:center; gap:6px;}
 .legend .sw{width:9px;height:9px;border-radius:50%;}
 
