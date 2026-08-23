@@ -167,7 +167,7 @@ const [econ, capByYear] = await Promise.all([
     gsel.append('circle')
       .attr('cx', logScale(d.value)).attr('cy', cy)
       .attr('r', rScale(d.value))
-      .attr('fill', i===0 ? 'var(--other)' : 'var(--solar)')
+      .attr('fill', 'var(--solar)')
       .attr('fill-opacity', 0.85);
     gsel.append('text')
       .attr('x', logScale(d.value)).attr('y', cy - rScale(d.value) - 14)
@@ -187,8 +187,8 @@ const [econ, capByYear] = await Promise.all([
     .attr('x', (logScale(data[0].value)+logScale(data[1].value))/2)
     .attr('y', cy + 4)
     .attr('text-anchor','middle')
-    .attr('font-family','IBM Plex Mono').attr('font-weight', 600)
-    .attr('font-size', 12).attr('fill', 'var(--ink-soft)')
+    .attr('font-family','Space Grotesk').attr('font-weight', 700)
+    .attr('font-size', 20).attr('fill', 'var(--ink)')
     .text('↓ 99.6% decline');
 })();
 

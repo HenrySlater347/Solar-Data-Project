@@ -1,27 +1,46 @@
 window.__initAction = async function(){
 
-const [data, annual, targets] = await Promise.all([
-  d3.json('data/period_share.json'),
+const [annual, targets] = await Promise.all([
   d3.json('data/annual_additions.json'),
   d3.json('data/targets.json')
 ]);
 
-const PERIOD_YEARS = {
-  '2000–09': [2000, 2009],
-  '2010–19': [2010, 2019],
-  '2015–19': [2015, 2019]
-};
+const FOSSIL_KEYS = ['Coal', 'Gas', 'Oil'];
+const RENEW_KEYS = ['Wind', 'Solar'];
+const ALL_KEYS = ['Coal','Gas','Oil','Nuclear','Hydro','Wind','Solar','Other'];
+
+// build proper 5-year buckets from the year-by-year data (2020 excluded — see note below)
+const BUCKETS = [
+  {label: '2000–04', start: 2000, end: 2004},
+  {label: '2005–09', start: 2005, end: 2009},
+  {label: '2010–14', start: 2010, end: 2014},
+  {label: '2015–19', start: 2015, end: 2019}
+];
+const PERIOD_YEARS = {};
+BUCKETS.forEach(b => { PERIOD_YEARS[b.label] = [b.start, b.end]; });
+
+const data = BUCKETS.map(b => {
+  const years = annual.filter(r => r.year >= b.start && r.year <= b.end);
+  const fossilSum = d3.sum(years, r => FOSSIL_KEYS.reduce((s,k) => s + (r[k]||0), 0));
+  const renewSum = d3.sum(years, r => RENEW_KEYS.reduce((s,k) => s + (r[k]||0), 0));
+  const grandSum = d3.sum(years, r => ALL_KEYS.reduce((s,k) => s + (r[k]||0), 0));
+  return {
+    label: b.label,
+    fossil: +(fossilSum / grandSum * 100).toFixed(1),
+    renew: +(renewSum / grandSum * 100).toFixed(1)
+  };
+});
 
 const w = document.getElementById('shareChart').clientWidth || 900, h = 280;
-const margin = {top:20, right:30, bottom:34, left:110};
+const margin = {top:20, right:150, bottom:34, left:110};
 const svg = d3.select('#shareChart').attr('viewBox', `0 0 ${w} ${h}`);
 const iw = w - margin.left - margin.right, ih = h - margin.top - margin.bottom;
 const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
-const y = d3.scaleBand().domain(data.map(d=>d.label)).range([0, ih]).padding(0.38);
+const y = d3.scaleBand().domain(data.map(d=>d.label)).range([0, ih]).padding(0.32);
 const x = d3.scaleLinear().domain([0,100]).range([0, iw]);
 
-// baseline gridline at 0/50/100
+// baseline gridline at 0/25/50/75/100
 [0,25,50,75,100].forEach(v => {
   g.append('line').attr('x1', x(v)).attr('x2', x(v)).attr('y1', 0).attr('y2', ih)
     .attr('stroke', 'var(--hair)').attr('stroke-width', 0.6);
@@ -200,18 +219,6 @@ rows.selectAll('rect').style('cursor', 'pointer').on('click', function(evt, d){
       const words = d.sub.split(' ');
       return words.length > 5 ? words.slice(0,5).join(' ') + '…' : d.sub;
     });
-
-  // gap annotation between actual and 2030 target
-  const gapPct = targets.target_2030_pct - targets.actual_pct;
-  g.append('text')
-    .attr('x', (x('actual') + x.bandwidth()/2 + x('2030') + x.bandwidth()/2) / 2)
-    .attr('y', y(targets.target_2030_pct) - 28)
-    .attr('text-anchor', 'middle')
-    .attr('font-family', 'IBM Plex Mono').attr('font-weight', 700).attr('font-size', 12.5)
-    .attr('fill', 'var(--solar)')
-    .attr('opacity', 0)
-    .text(`${gapPct.toFixed(1)} points`)
-    .transition().delay(1400).duration(400).attr('opacity', 1);
 })();
 
 };

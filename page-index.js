@@ -53,7 +53,7 @@ const [land, mapData, fuelMix, countries, capByYear] = await Promise.all([
     .attr('x', w/2).attr('y', barY + barH + 26)
     .attr('text-anchor','middle')
     .attr('font-family','IBM Plex Mono').attr('font-size', 11).attr('fill','var(--ink-soft)')
-    .text('world installed generating capacity, by fuel — watch it evolve');
+    .text('World installed generating capacity, by fuel — watch it evolve');
 
   let idx = 0;
   function playNext(){
@@ -148,7 +148,7 @@ function drawDots(){
     .merge(sel)
       .attr('r', d => sqrtScale(d.cap))
       .on('mousemove', (evt,d) => {
-        showTip(`<strong>${d.fuel}</strong><br>${fmtMW(d.cap)} across ${d.n} plant${d.n>1?'s':''}<br><span style="opacity:.6">grid cell ${d.lat}°, ${d.lon}°</span>`, evt);
+        showTip(`<strong>${d.fuel}</strong><br>${fmtMW(d.cap)} across ${d.n} plant${d.n>1?'s':''}<br><span style="opacity:.6">Grid cell ${d.lat}°, ${d.lon}°</span>`, evt);
       })
       .on('mouseleave', hideTip);
 
@@ -191,9 +191,8 @@ FUEL_ORDER.forEach(f => {
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
   const rScale = d3.scaleSqrt().domain([0, d3.max(data, d=>d.capacity_mw)]).range([14, 58]);
-  const maxR = rScale.range()[1];
-  const x = d3.scaleLog().domain([150, 12000]).range([maxR, iw - maxR]);
-  const y = d3.scaleLog().domain([50000, 2200000]).range([ih - maxR, maxR]);
+  const x = d3.scaleLog().domain([150, 12000]).range([0, iw]);
+  const y = d3.scaleLog().domain([50000, 2200000]).range([ih, 0]);
 
   g.append('g').attr('class','axis')
     .attr('transform', `translate(0,${ih})`)
@@ -218,7 +217,12 @@ FUEL_ORDER.forEach(f => {
 
   const nodes = g.selectAll('.fuelNode').data(data).enter().append('g')
     .attr('class','fuelNode')
-    .attr('transform', d => `translate(${x(d.count)},${y(d.capacity_mw)})`)
+    .attr('transform', d => {
+      const r = rScale(d.capacity_mw);
+      const cx = Math.max(r, Math.min(iw - r, x(d.count)));
+      const cy = Math.max(r, Math.min(ih - r, y(d.capacity_mw)));
+      return `translate(${cx},${cy})`;
+    })
     .style('cursor','pointer');
 
   nodes.append('circle')
@@ -227,7 +231,7 @@ FUEL_ORDER.forEach(f => {
     .attr('fill-opacity', 0.82)
     .attr('stroke', 'var(--panel)')
     .attr('stroke-width', 1.5)
-    .on('mousemove', (evt,d) => showTip(`<strong>${d.fuel}</strong><br>${fmtNum(d.count)} plants · ${fmtGW(d.capacity_mw)}<br>avg ${Math.round(d.capacity_mw/d.count)} MW/plant`, evt))
+    .on('mousemove', (evt,d) => showTip(`<strong>${d.fuel}</strong><br>${fmtNum(d.count)} plants · ${fmtGW(d.capacity_mw)}<br>Avg ${Math.round(d.capacity_mw/d.count)} MW/plant`, evt))
     .on('mouseleave', hideTip)
     .transition().delay((d,i)=>i*80).duration(500).ease(d3.easeBackOut.overshoot(1.4))
     .attr('r', d => rScale(d.capacity_mw));
@@ -256,6 +260,16 @@ FUEL_ORDER.forEach(f => {
       detailNote.style('opacity',0);
     }
   });
+
+  // idle breathing pulse, keeps the chart alive after the entrance animation settles
+  function idlePulse(){
+    nodes.select('circle').transition().duration(1700 + Math.random()*400).ease(d3.easeSinInOut)
+      .attr('r', d => rScale(d.capacity_mw) * 1.055)
+      .transition().duration(1700 + Math.random()*400).ease(d3.easeSinInOut)
+      .attr('r', d => rScale(d.capacity_mw))
+      .on('end', function(d, i){ if (i === 0 && !selected) idlePulse(); else if (i === 0) setTimeout(idlePulse, 1800); });
+  }
+  setTimeout(idlePulse, 1300);
 })();
 
 /* ===================== TOP COUNTRIES (stacked horizontal, sortable + click-to-pin) ===================== */
