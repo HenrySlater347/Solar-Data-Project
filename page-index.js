@@ -7,12 +7,18 @@ const [land, mapData, fuelMix, countries] = await Promise.all([
   d3.json('data/top_countries.json')
 ]);
 
-/* ===================== HERO BUBBLE CLUSTERS ===================== */
+/* ===================== HERO BUBBLE SPECTRUM (real axis + size legend) ===================== */
 (function(){
   const el = document.getElementById('heroViz');
   if (!el) return;
-  const w = el.clientWidth || 900, h = 190;
+  const w = el.clientWidth || 900, h = 220;
+  const legendW = Math.max(120, Math.min(190, w * 0.26));
+  const margin = {top: 8, right: legendW, bottom: 36, left: 16};
+  const iw = w - margin.left - margin.right;
+  const ih = h - margin.top - margin.bottom;
+
   const svg = d3.select('#heroViz').attr('viewBox', `0 0 ${w} ${h}`);
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
   const defs = svg.append('defs');
   const shadow = defs.append('filter').attr('id', 'bubbleShadow')
@@ -32,35 +38,37 @@ const [land, mapData, fuelMix, countries] = await Promise.all([
   const totalCount = d3.sum(fuelMix, d => d.count);
   const avgCapByFuel = {};
   fuelMix.forEach(f => { avgCapByFuel[f.fuel] = f.capacity_mw / f.count; });
-  const maxAvgCap = d3.max(Object.values(avgCapByFuel));
-  const rScale = d3.scaleSqrt().domain([0, maxAvgCap]).range([2.5, 40]);
+  const capValues = Object.values(avgCapByFuel);
+  const minAvgCap = d3.min(capValues), maxAvgCap = d3.max(capValues);
 
-  const colWidth = w / FUEL_ORDER.length;
+  const xScale = d3.scaleLog().domain([minAvgCap * 0.75, maxAvgCap * 1.15]).range([0, iw]);
+  const rScale = d3.scaleSqrt().domain([0, maxAvgCap]).range([2.5, 36]);
+
   let nodes = [];
-  FUEL_ORDER.forEach((f, colIdx) => {
+  FUEL_ORDER.forEach(f => {
     const rec = fuelMix.find(x => x.fuel === f);
     const n = Math.max(3, Math.round(totalBubbles * rec.count / totalCount));
     const baseR = rScale(avgCapByFuel[f]);
-    const colCenter = colWidth * (colIdx + 0.5);
+    const targetX = xScale(avgCapByFuel[f]);
     for (let i = 0; i < n; i++) {
       nodes.push({
         fuel: f,
         r: baseR * (0.78 + Math.random() * 0.44),
-        targetX: colCenter,
-        x: colCenter + (Math.random() - 0.5) * 20,
-        y: h/2 + (Math.random() - 0.5) * 20
+        targetX,
+        x: targetX + (Math.random() - 0.5) * 10,
+        y: ih/2 + (Math.random() - 0.5) * 20
       });
     }
   });
 
   const sim = d3.forceSimulation(nodes)
-    .force('x', d3.forceX(d => d.targetX).strength(0.12))
-    .force('y', d3.forceY(h/2 - 6).strength(0.06))
-    .force('collide', d3.forceCollide(d => d.r + 1.5).strength(0.9))
+    .force('x', d3.forceX(d => d.targetX).strength(0.25))
+    .force('y', d3.forceY(ih/2).strength(0.05))
+    .force('collide', d3.forceCollide(d => d.r + 1.2).strength(0.9))
     .stop();
-  for (let i = 0; i < 160; i++) sim.tick();
+  for (let i = 0; i < 180; i++) sim.tick();
 
-  const bubbles = svg.selectAll('circle').data(nodes).enter().append('circle')
+  const bubbles = g.selectAll('circle').data(nodes).enter().append('circle')
     .attr('cx', d => d.x).attr('cy', d => d.y)
     .attr('r', 0)
     .attr('fill', d => `url(#grad-${d.fuel})`)
@@ -77,12 +85,29 @@ const [land, mapData, fuelMix, countries] = await Promise.all([
     .ease(d3.easeElasticOut.amplitude(1).period(0.5))
     .attr('r', d => d.r);
 
-  FUEL_ORDER.forEach((f, colIdx) => {
-    svg.append('text')
-      .attr('x', colWidth * (colIdx + 0.5)).attr('y', h - 4)
+  // real axis, log scale of avg MW per plant
+  g.append('g').attr('class', 'axis')
+    .attr('transform', `translate(0,${ih + 12})`)
+    .call(d3.axisBottom(xScale).ticks(4, '~s').tickSize(0))
+    .call(gg => gg.select('.domain').attr('stroke', 'var(--hair)'))
+    .call(gg => gg.selectAll('text')
+      .attr('font-family', 'IBM Plex Mono').attr('font-size', 9.5).attr('fill', 'var(--ink-soft)'));
+  g.append('text')
+    .attr('x', 0).attr('y', ih + 30)
+    .attr('font-family', 'IBM Plex Mono').attr('font-size', 9.5).attr('fill', 'var(--ink-soft)')
+    .text('average capacity per plant, MW (log scale) — tiny ←——————→ huge');
+
+  // fuel labels, placed above each cluster's actual settled centroid
+  FUEL_ORDER.forEach(f => {
+    const pts = nodes.filter(n => n.fuel === f);
+    const cx = d3.mean(pts, p => p.x);
+    const topY = d3.min(pts, p => p.y - p.r) - 6;
+    g.append('text')
+      .attr('x', cx).attr('y', Math.max(10, topY))
       .attr('text-anchor', 'middle')
-      .attr('font-family', 'IBM Plex Mono').attr('font-size', 10.5).attr('font-weight', 600)
-      .attr('fill', 'var(--ink-soft)').attr('opacity', 0)
+      .attr('font-family', 'IBM Plex Mono').attr('font-size', 10).attr('font-weight', 600)
+      .attr('fill', 'var(--ink-soft)')
+      .attr('opacity', 0)
       .text(f)
       .transition().delay(900).duration(400).attr('opacity', 1);
   });
@@ -95,6 +120,31 @@ const [land, mapData, fuelMix, countries] = await Promise.all([
       .on('end', function(d, i){ if (i === 0) idleFloat(); });
   }
   setTimeout(idleFloat, 1600);
+
+  // size legend, top-right inset
+  const legendX = w - legendW + 14;
+  const legendG = svg.append('g').attr('transform', `translate(${legendX},${margin.top + 2})`);
+  legendG.append('text').attr('x', 0).attr('y', 0)
+    .attr('font-family', 'IBM Plex Mono').attr('font-size', 9.5).attr('font-weight', 600).attr('fill', 'var(--ink-soft)')
+    .text('bubble size =');
+  legendG.append('text').attr('x', 0).attr('y', 12)
+    .attr('font-family', 'IBM Plex Mono').attr('font-size', 9.5).attr('font-weight', 600).attr('fill', 'var(--ink-soft)')
+    .text('avg MW per plant');
+
+  const legendSmallR = rScale(minAvgCap), legendBigR = rScale(maxAvgCap);
+  const smallCy = 30 + legendSmallR;
+  legendG.append('circle').attr('cx', legendSmallR + 4).attr('cy', smallCy).attr('r', legendSmallR)
+    .attr('fill', 'var(--solar)').attr('fill-opacity', 0.55);
+  legendG.append('text').attr('x', legendSmallR * 2 + 14).attr('y', smallCy + 3)
+    .attr('font-family', 'IBM Plex Mono').attr('font-size', 9).attr('fill', 'var(--ink-soft)')
+    .text(`~${Math.round(minAvgCap)} MW`);
+
+  const bigCy = smallCy + legendSmallR + legendBigR + 14;
+  legendG.append('circle').attr('cx', legendBigR + 4).attr('cy', bigCy).attr('r', legendBigR)
+    .attr('fill', 'var(--nuclear)').attr('fill-opacity', 0.55);
+  legendG.append('text').attr('x', legendBigR * 2 + 14).attr('y', bigCy + 3)
+    .attr('font-family', 'IBM Plex Mono').attr('font-size', 9).attr('fill', 'var(--ink-soft)')
+    .text(`~${Math.round(maxAvgCap)} MW`);
 
   animateCounters('#heroStats .num', 1700);
 })();
