@@ -190,9 +190,10 @@ FUEL_ORDER.forEach(f => {
   const iw = w - margin.left - margin.right, ih = h - margin.top - margin.bottom;
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
-  const x = d3.scaleLog().domain([150, 12000]).range([0, iw]);
-  const y = d3.scaleLog().domain([50000, 2200000]).range([ih, 0]);
-  const rScale = d3.scaleSqrt().domain([0, d3.max(data, d=>d.capacity_mw)]).range([14, 62]);
+  const rScale = d3.scaleSqrt().domain([0, d3.max(data, d=>d.capacity_mw)]).range([14, 58]);
+  const maxR = rScale.range()[1];
+  const x = d3.scaleLog().domain([150, 12000]).range([maxR, iw - maxR]);
+  const y = d3.scaleLog().domain([50000, 2200000]).range([ih - maxR, maxR]);
 
   g.append('g').attr('class','axis')
     .attr('transform', `translate(0,${ih})`)

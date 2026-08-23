@@ -9,12 +9,12 @@ const [econ, capByYear] = await Promise.all([
 (function(){
   const data = econ.lcoe_usd_per_kwh;
   const w = document.getElementById('lcoeChart').clientWidth || 900, h = 420;
-  const margin = {top:30, right:40, bottom:40, left:64};
+  const margin = {top:30, right:100, bottom:40, left:64};
   const svg = d3.select('#lcoeChart').attr('viewBox', `0 0 ${w} ${h}`);
   const iw = w - margin.left - margin.right, ih = h - margin.top - margin.bottom;
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
-  const x = d3.scaleLinear().domain([2010, 2024]).range([0, iw]);
+  const x = d3.scaleLinear().domain([2009, 2024]).range([0, iw]);
   const y = d3.scaleLinear().domain([0, 0.45]).range([ih, 0]);
 
   // gridlines
@@ -64,6 +64,50 @@ const [econ, capByYear] = await Promise.all([
     .attr('text-anchor','end')
     .attr('font-family','IBM Plex Mono').attr('font-size', 13).attr('font-weight', 700).attr('fill','var(--ink)')
     .text(`${last.year}: $${last.value.toFixed(3)}`);
+
+  // ---- comparison lines: coal, gas, nuclear (flat/rising, for scale) ----
+  const compData = econ.lcoe_comparison_usd_per_kwh || {};
+  const compColors = {Coal: 'var(--fossil)', Gas: '#9C6B3E', Nuclear: 'var(--nuclear)'};
+  const compLine = d3.line().x(d => x(d.year)).y(d => y(d.value));
+
+  const compLabels = []; // collect for collision avoidance
+  Object.keys(compData).forEach(fuel => {
+    const series = compData[fuel];
+    g.append('path').datum(series).attr('d', compLine)
+      .attr('fill', 'none').attr('stroke', compColors[fuel] || 'var(--ink-soft)')
+      .attr('stroke-width', 2).attr('stroke-dasharray', '5,4').attr('opacity', 0.85);
+
+    g.selectAll(`.compdot-${fuel}`).data(series).enter().append('circle')
+      .attr('cx', d => x(d.year)).attr('cy', d => y(d.value))
+      .attr('r', 3.5).attr('fill', compColors[fuel] || 'var(--ink-soft)')
+      .on('mousemove', (evt,d) => showTip(`<strong>${fuel}</strong><br>${d.year}: $${d.value.toFixed(3)} / kWh`, evt))
+      .on('mouseleave', hideTip);
+
+    const endPt = series[series.length - 1];
+    compLabels.push({
+      fuel, value: endPt.value, color: compColors[fuel] || 'var(--ink-soft)',
+      anchorX: x(endPt.year), anchorY: y(endPt.value),
+      x: iw + 10, y: y(endPt.value)
+    });
+  });
+
+  // collision avoidance: sort by y, push apart any labels within 15px
+  compLabels.sort((a,b) => a.y - b.y);
+  for (let i = 1; i < compLabels.length; i++) {
+    if (compLabels[i].y - compLabels[i-1].y < 15) {
+      compLabels[i].y = compLabels[i-1].y + 15;
+    }
+  }
+  compLabels.forEach(d => {
+    g.append('line')
+      .attr('x1', d.anchorX).attr('y1', d.anchorY)
+      .attr('x2', d.x - 4).attr('y2', d.y)
+      .attr('stroke', d.color).attr('stroke-width', 1).attr('stroke-dasharray', '1,2').attr('opacity', 0.6);
+    g.append('text').attr('x', d.x).attr('y', d.y + 4)
+      .attr('font-family', 'IBM Plex Mono').attr('font-size', 11).attr('font-weight', 700)
+      .attr('fill', d.color)
+      .text(`${d.fuel}: $${d.value.toFixed(3)}`);
+  });
 
   // full-width crosshair scrubber, snaps to nearest known year
   const bisectYear = d3.bisector(d => d.year).left;

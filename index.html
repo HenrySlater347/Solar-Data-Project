@@ -85,7 +85,7 @@
   <section>
     <div class="wrap">
       <div class="section-head" style="margin-bottom:20px;">
-        <div class="eyebrow">The paradox</div>
+        <div class="eyebrow" style="font-size:1.3rem; font-weight:700; letter-spacing:normal; text-transform:none; color:var(--ink);">The paradox</div>
         <h2>Many tiny plants, or a few enormous ones — never both</h2>
         <p>Every fuel sits somewhere on this trade-off. Bubble size is each fuel's total installed capacity. Click a bubble for the full breakdown.</p>
       </div>
@@ -145,12 +145,18 @@
       <div class="section-head">
         <div class="eyebrow">1 · Levelised cost of electricity</div>
         <h2>The line every fossil fuel plant now competes against</h2>
-        <p>Global weighted-average cost to generate one kilowatt-hour from a newly built utility-scale solar plant, by year of commissioning.</p>
+        <p>Global weighted-average cost to generate one kilowatt-hour from a newly built utility-scale solar plant, by year of commissioning — plotted against coal, gas, and nuclear for scale. The gold line falls off a cliff. The dashed ones barely move, and nuclear has gotten more expensive.</p>
       </div>
       <div class="panel">
         <svg id="lcoeChart" style="width:100%; height:420px; display:block;"></svg>
+        <div class="legend" style="margin-top:14px;">
+          <div class="item"><span class="sw" style="background:#E8AA2E;"></span><span>Solar (IRENA)</span></div>
+          <div class="item"><span class="sw" style="background:var(--fossil);"></span><span>Coal (Lazard)</span></div>
+          <div class="item"><span class="sw" style="background:#9C6B3E;"></span><span>Gas (Lazard)</span></div>
+          <div class="item"><span class="sw" style="background:var(--nuclear);"></span><span>Nuclear (Lazard)</span></div>
+        </div>
       </div>
-      <div class="note">Source: <a href="https://www.irena.org/Publications/2024/Sep/Renewable-Power-Generation-Costs-in-2023" target="_blank" rel="noopener" style="color:inherit;">IRENA, <em>Renewable Power Generation Costs</em></a> (2018, 2020, 2023 &amp; 2024 editions). Figures are global weighted averages for the year of commissioning and are periodically revised by IRENA as more project data becomes available. Full source list on the <a href="sources.html" style="color:inherit; text-decoration:underline;">Sources page</a>.</div>
+      <div class="note">Solar source: <a href="https://www.irena.org/Publications/2024/Sep/Renewable-Power-Generation-Costs-in-2023" target="_blank" rel="noopener" style="color:inherit;">IRENA, <em>Renewable Power Generation Costs</em></a> (2018, 2020, 2023 &amp; 2024 editions). Coal/gas/nuclear reference lines: Lazard <em>Levelized Cost of Energy Analysis</em> (v3.0 2009 vs. v16.0 2023, mean unsubsidized LCOE), as compiled in the World Nuclear Industry Status Report 2023 — a different methodology than the IRENA figures, shown for order-of-magnitude context only, not a strict apples-to-apples comparison. Full source list on the <a href="sources.html" style="color:inherit; text-decoration:underline;">Sources page</a>.</div>
     </div>
   </section>
 
@@ -272,6 +278,20 @@
           <p>Most people still believe renewables cost more. Share what the data actually shows — with your city council, your workplace, your family — and let the economics do the arguing.</p>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="dark-section gridpaper on-dark">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">The gap</div>
+        <h2>Where we are, versus where the climate math says we need to be</h2>
+        <p>Wind and solar's actual share of newly added capacity, next to what the IEA's Net Zero pathway says renewables' share of <em>total electricity generation</em> needs to reach. Different metrics — but the size of the gap is the point.</p>
+      </div>
+      <div class="panel" style="background:var(--dark-panel); border-color:var(--hair-dark);">
+        <svg id="gapChart" style="width:100%; height:340px; display:block;"></svg>
+      </div>
+      <div class="note" style="border-color:var(--hair-dark); color:var(--soft-on-dark);">Actual: this dataset, wind + solar share of newly added capacity, 2015–19. Targets: International Energy Agency, <em>Net Zero by 2050: A Roadmap for the Global Energy Sector</em> (2021) and <em>World Energy Outlook 2020</em> — renewables' share of global electricity generation in the IEA's Net Zero Emissions Scenario. Full source list on the <a href="sources.html" style="color:inherit; text-decoration:underline;">Sources page</a>.</div>
     </div>
   </section>
 

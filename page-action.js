@@ -1,8 +1,9 @@
 window.__initAction = async function(){
 
-const [data, annual] = await Promise.all([
+const [data, annual, targets] = await Promise.all([
   d3.json('data/period_share.json'),
-  d3.json('data/annual_additions.json')
+  d3.json('data/annual_additions.json'),
+  d3.json('data/targets.json')
 ]);
 
 const PERIOD_YEARS = {
@@ -127,5 +128,90 @@ rows.selectAll('rect').style('cursor', 'pointer').on('click', function(evt, d){
     renderDetail(d.label);
   }
 });
+
+/* ===================== THE GAP: actual vs. IEA Net Zero targets ===================== */
+(function(){
+  const el = document.getElementById('gapChart');
+  if (!el || !targets) return;
+  const gw = el.clientWidth || 900, gh = 340;
+  const margin = {top: 30, right: 30, bottom: 70, left: 30};
+  const iw = gw - margin.left - margin.right, ih = gh - margin.top - margin.bottom;
+
+  const svg = d3.select('#gapChart').attr('viewBox', `0 0 ${gw} ${gh}`);
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const bars = [
+    {key: 'actual', pct: targets.actual_pct, label: 'Actual (2015–19)', sub: 'wind + solar, share of new capacity added', color: 'var(--solar)'},
+    {key: '2030', pct: targets.target_2030_pct, label: 'Needed by 2030', sub: 'IEA Net Zero pathway, renewables share of generation', color: 'var(--renew)'},
+    {key: '2050', pct: targets.target_2050_pct, label: 'Needed by 2050', sub: 'IEA Net Zero pathway, renewables share of generation', color: 'var(--renew-dim)'}
+  ];
+
+  const x = d3.scaleBand().domain(bars.map(d => d.key)).range([0, iw]).padding(0.32);
+  const y = d3.scaleLinear().domain([0, 100]).range([ih, 0]);
+
+  // gridlines at 25/50/75/100%
+  [25, 50, 75, 100].forEach(v => {
+    g.append('line').attr('x1', 0).attr('x2', iw).attr('y1', y(v)).attr('y2', y(v))
+      .attr('stroke', 'var(--hair-dark)').attr('stroke-width', 0.6);
+    g.append('text').attr('x', -6).attr('y', y(v)).attr('dy', 3).attr('text-anchor', 'end')
+      .attr('font-family', 'IBM Plex Mono').attr('font-size', 9.5).attr('fill', 'var(--soft-on-dark)')
+      .text(v + '%');
+  });
+
+  const barSel = g.selectAll('rect').data(bars).enter().append('rect')
+    .attr('x', d => x(d.key)).attr('width', x.bandwidth())
+    .attr('y', ih).attr('height', 0)
+    .attr('fill', d => d.color)
+    .attr('rx', 3)
+    .on('mousemove', (evt,d) => showTip(`<strong>${d.label}</strong><br>${d.pct}% · ${d.sub}`, evt))
+    .on('mouseleave', hideTip);
+
+  barSel.transition().delay((d,i) => i*180).duration(750).ease(d3.easeCubicOut)
+    .attr('y', d => y(d.pct))
+    .attr('height', d => ih - y(d.pct));
+
+  g.selectAll('.pctLbl').data(bars).enter().append('text')
+    .attr('x', d => x(d.key) + x.bandwidth()/2)
+    .attr('y', ih)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'Space Grotesk').attr('font-weight', 700)
+    .attr('font-size', 20).attr('fill', 'var(--paper-on-dark)')
+    .attr('opacity', 0)
+    .text(d => d.pct + '%')
+    .transition().delay((d,i) => i*180 + 500).duration(400)
+    .attr('y', d => y(d.pct) - 12)
+    .attr('opacity', 1);
+
+  g.selectAll('.barLbl').data(bars).enter().append('text')
+    .attr('x', d => x(d.key) + x.bandwidth()/2)
+    .attr('y', ih + 22)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'IBM Plex Mono').attr('font-weight', 700).attr('font-size', 12)
+    .attr('fill', 'var(--paper-on-dark)')
+    .text(d => d.label);
+
+  g.selectAll('.subLbl').data(bars).enter().append('text')
+    .attr('x', d => x(d.key) + x.bandwidth()/2)
+    .attr('y', ih + 38)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'IBM Plex Mono').attr('font-size', 9.5)
+    .attr('fill', 'var(--soft-on-dark)')
+    .text(d => {
+      const words = d.sub.split(' ');
+      return words.length > 5 ? words.slice(0,5).join(' ') + '…' : d.sub;
+    });
+
+  // gap annotation between actual and 2030 target
+  const gapPct = targets.target_2030_pct - targets.actual_pct;
+  g.append('text')
+    .attr('x', (x('actual') + x.bandwidth()/2 + x('2030') + x.bandwidth()/2) / 2)
+    .attr('y', y(targets.target_2030_pct) - 28)
+    .attr('text-anchor', 'middle')
+    .attr('font-family', 'IBM Plex Mono').attr('font-weight', 700).attr('font-size', 12.5)
+    .attr('fill', 'var(--solar)')
+    .attr('opacity', 0)
+    .text(`${gapPct.toFixed(1)} points`)
+    .transition().delay(1400).duration(400).attr('opacity', 1);
+})();
 
 };

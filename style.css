@@ -263,8 +263,8 @@ section.tight{padding:30px 0;}
 .chip .swatch{width:8px;height:8px;border-radius:50%;display:inline-block;}
 .chip.off{opacity:.38;}
 .chip:hover{border-color:var(--ink-soft);}
-.chip.country-sort{color:var(--soft-on-dark); border-color:var(--hair-dark);}
-.chip.country-sort.active{border-color:var(--solar); color:var(--paper-on-dark);}
+.chip.country-sort{color:var(--ink); font-weight:700; border-color:var(--hair-dark);}
+.chip.country-sort.active{border-color:var(--solar); color:var(--ink); background:var(--solar-dim);}
 .chip.country-sort:hover{border-color:var(--solar);}
 
 /* ---------------- LEGEND ---------------- */

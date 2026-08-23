@@ -1,0 +1,9 @@
+{
+  "actual_pct": 20.6,
+  "actual_label": "2015\u201319 actual (this dataset): wind + solar share of new capacity added",
+  "target_2030_pct": 60,
+  "target_2030_label": "IEA Net Zero pathway: renewables' share of total electricity generation needed by 2030",
+  "target_2050_pct": 90,
+  "target_2050_label": "IEA Net Zero pathway: renewables' share of total electricity generation needed by 2050",
+  "source": "International Energy Agency, Net Zero by 2050: A Roadmap for the Global Energy Sector (2021) and World Energy Outlook 2020 \u2014 renewables' share of global electricity generation rises from 27% (2019) to roughly 60% (2030) and roughly 90% (2050) in the IEA's Net Zero Emissions Scenario. Compared here against this dataset's wind+solar share of newly added capacity, which is a related but not identical metric: all renewables vs. wind+solar only, and share of total generation vs. share of new capacity additions."
+}
