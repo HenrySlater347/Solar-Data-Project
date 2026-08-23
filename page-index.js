@@ -8,7 +8,7 @@ const [land, mapData, fuelMix, countries, capByYear] = await Promise.all([
   d3.json('data/capacity_by_year.json')
 ]);
 
-/* ===================== HERO: TIME-LAPSE GRID COMPOSITION, 1950 -> 2020 ===================== */
+/* ===================== HERO: TIME-LAPSE GRID COMPOSITION, 1950 -> 2020, LOOPING ===================== */
 (function(){
   const el = document.getElementById('heroViz');
   if (!el) return;
@@ -18,7 +18,7 @@ const [land, mapData, fuelMix, countries, capByYear] = await Promise.all([
 
   const svg = d3.select('#heroViz').attr('viewBox', `0 0 ${w} ${h}`);
 
-  const keyframeYears = [1950, 1980, 2000, 2010, 2015, 2020];
+  const keyframeYears = [1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020];
   const stackGen = d3.stack().keys(FUEL_ORDER);
 
   function frameFor(year){
@@ -53,27 +53,11 @@ const [land, mapData, fuelMix, countries, capByYear] = await Promise.all([
     .attr('x', w/2).attr('y', barY + barH + 26)
     .attr('text-anchor','middle')
     .attr('font-family','IBM Plex Mono').attr('font-size', 11).attr('fill','var(--ink-soft)')
-    .text('World installed generating capacity, by fuel — watch it evolve');
+    .text('World installed generating capacity, by fuel — watch it evolve, on repeat');
 
-  let idx = 0;
-  function playNext(){
-    idx++;
-    if (idx >= keyframeYears.length){
-      showFinalLabels();
-      return;
-    }
-    const yr = keyframeYears[idx];
-    const frame = frameFor(yr);
-    yearLabel.transition().duration(280).style('opacity', 0.35)
-      .on('end', function(){ yearLabel.text(yr).transition().duration(280).style('opacity', 1); });
-
-    bars.data(frame, d => d.fuel)
-      .transition().duration(850).ease(d3.easeCubicInOut)
-      .attr('x', d => d.x0)
-      .attr('width', d => Math.max(0, d.x1 - d.x0))
-      .on('end', function(d,i){ if (i === 0) playNext(); });
+  function clearFinalLabels(){
+    svg.selectAll('.finalLbl').remove();
   }
-  setTimeout(playNext, 850);
 
   function showFinalLabels(){
     const finalFrame = frameFor(2020);
@@ -94,6 +78,43 @@ const [land, mapData, fuelMix, countries, capByYear] = await Promise.all([
       .transition().duration(450)
       .attr('y', barY).attr('height', barH);
   }
+
+  let idx = 0;
+
+  function stepForward(){
+    idx++;
+
+    if (idx >= keyframeYears.length){
+      // reached 2020 — hold on the final frame with labels, then rewind and loop forever
+      showFinalLabels();
+      setTimeout(() => {
+        clearFinalLabels();
+        idx = 0;
+        const frame = frameFor(keyframeYears[0]);
+        yearLabel.transition().duration(500).style('opacity', 0.3)
+          .on('end', function(){ yearLabel.text(keyframeYears[0]).transition().duration(400).style('opacity', 1); });
+        bars.data(frame, d => d.fuel)
+          .transition().duration(700).ease(d3.easeCubicInOut)
+          .attr('x', d => d.x0)
+          .attr('width', d => Math.max(0, d.x1 - d.x0))
+          .attr('y', barY).attr('height', barH)
+          .on('end', function(d,i){ if (i === 0) setTimeout(stepForward, 900); });
+      }, 2200);
+      return;
+    }
+
+    const yr = keyframeYears[idx];
+    const frame = frameFor(yr);
+    yearLabel.transition().duration(280).style('opacity', 0.35)
+      .on('end', function(){ yearLabel.text(yr).transition().duration(280).style('opacity', 1); });
+
+    bars.data(frame, d => d.fuel)
+      .transition().duration(850).ease(d3.easeCubicInOut)
+      .attr('x', d => d.x0)
+      .attr('width', d => Math.max(0, d.x1 - d.x0))
+      .on('end', function(d,i){ if (i === 0) setTimeout(stepForward, 250); });
+  }
+  setTimeout(stepForward, 850);
 
   animateCounters('#heroStats .num', 1700);
 })();

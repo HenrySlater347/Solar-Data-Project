@@ -10,7 +10,7 @@ const [econ, capByYear] = await Promise.all([
   // cap solar at 2023 so every line on this chart ends on the same year
   const data = econ.lcoe_usd_per_kwh.filter(d => d.year <= 2023);
   const w = document.getElementById('lcoeChart').clientWidth || 900, h = 420;
-  const margin = {top:30, right:100, bottom:40, left:64};
+  const margin = {top:30, right:160, bottom:40, left:64};
   const svg = d3.select('#lcoeChart').attr('viewBox', `0 0 ${w} ${h}`);
   const iw = w - margin.left - margin.right, ih = h - margin.top - margin.bottom;
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
@@ -66,7 +66,7 @@ const [econ, capByYear] = await Promise.all([
   g.append('text').attr('x', x(first.year)+8).attr('y', y(first.value)-14)
     .attr('font-family','IBM Plex Mono').attr('font-size', LABEL_SIZE).attr('font-weight', 700).attr('fill', LABEL_COLOR)
     .text(`${first.year}: $${first.value.toFixed(3)}`);
-  g.append('text').attr('x', x(last.year)-8).attr('y', y(last.value)-16)
+  g.append('text').attr('x', x(last.year)-14).attr('y', y(last.value)-24)
     .attr('text-anchor','end')
     .attr('font-family','IBM Plex Mono').attr('font-size', LABEL_SIZE).attr('font-weight', 700).attr('fill', LABEL_COLOR)
     .text(`${last.year}: $${last.value.toFixed(3)}`);
@@ -112,15 +112,15 @@ const [econ, capByYear] = await Promise.all([
     compLabels.push({
       fuel, value: endPt.value, lineColor: compColors[fuel] || 'var(--ink-soft)',
       anchorX: x(endPt.year), anchorY: y(endPt.value),
-      x: iw + 10, y: y(endPt.value)
+      x: iw + 18, y: y(endPt.value)
     });
   });
 
   // collision avoidance: sort by y, push apart any labels within 15px
   compLabels.sort((a,b) => a.y - b.y);
   for (let i = 1; i < compLabels.length; i++) {
-    if (compLabels[i].y - compLabels[i-1].y < 15) {
-      compLabels[i].y = compLabels[i-1].y + 15;
+    if (compLabels[i].y - compLabels[i-1].y < 20) {
+      compLabels[i].y = compLabels[i-1].y + 20;
     }
   }
   compLabels.forEach(d => {
