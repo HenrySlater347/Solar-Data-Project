@@ -1,150 +1,99 @@
 window.__initGrid = async function(){
 
-const [land, mapData, fuelMix, countries] = await Promise.all([
+const [land, mapData, fuelMix, countries, capByYear] = await Promise.all([
   d3.json('data/land-110m.json'),
   d3.json('data/plants_map.json'),
   d3.json('data/fuel_mix.json'),
-  d3.json('data/top_countries.json')
+  d3.json('data/top_countries.json'),
+  d3.json('data/capacity_by_year.json')
 ]);
 
-/* ===================== HERO BUBBLE SPECTRUM (real axis + size legend) ===================== */
+/* ===================== HERO: TIME-LAPSE GRID COMPOSITION, 1950 -> 2020 ===================== */
 (function(){
   const el = document.getElementById('heroViz');
   if (!el) return;
   const w = el.clientWidth || 900, h = 220;
-  const legendW = Math.max(120, Math.min(190, w * 0.26));
-  const margin = {top: 8, right: legendW, bottom: 36, left: 16};
-  const iw = w - margin.left - margin.right;
-  const ih = h - margin.top - margin.bottom;
+  const barH = 70;
+  const barY = (h - barH) / 2 - 6;
 
   const svg = d3.select('#heroViz').attr('viewBox', `0 0 ${w} ${h}`);
-  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
 
-  const defs = svg.append('defs');
-  const shadow = defs.append('filter').attr('id', 'bubbleShadow')
-    .attr('x', '-60%').attr('y', '-60%').attr('width', '220%').attr('height', '220%');
-  shadow.append('feDropShadow')
-    .attr('dx', 0).attr('dy', 2).attr('stdDeviation', 2)
-    .attr('flood-color', '#000').attr('flood-opacity', 0.3);
+  const keyframeYears = [1950, 1980, 2000, 2010, 2015, 2020];
+  const stackGen = d3.stack().keys(FUEL_ORDER);
 
-  FUEL_ORDER.forEach(f => {
-    const grad = defs.append('radialGradient')
-      .attr('id', 'grad-' + f).attr('cx', '35%').attr('cy', '30%').attr('r', '75%');
-    grad.append('stop').attr('offset', '0%').attr('stop-color', d3.color(FUEL_COLORS[f]).brighter(1.15).toString());
-    grad.append('stop').attr('offset', '100%').attr('stop-color', FUEL_COLORS[f]);
-  });
+  function frameFor(year){
+    const rec = capByYear.find(r => r.year === year);
+    const total = FUEL_ORDER.reduce((s,f) => s + rec[f], 0);
+    const stacked = stackGen([rec]);
+    return stacked.map(layer => ({
+      fuel: layer.key,
+      x0: layer[0][0] / total * w,
+      x1: layer[0][1] / total * w
+    }));
+  }
 
-  const totalBubbles = 130;
-  const totalCount = d3.sum(fuelMix, d => d.count);
-  const avgCapByFuel = {};
-  fuelMix.forEach(f => { avgCapByFuel[f.fuel] = f.capacity_mw / f.count; });
-  const capValues = Object.values(avgCapByFuel);
-  const minAvgCap = d3.min(capValues), maxAvgCap = d3.max(capValues);
+  const firstFrame = frameFor(keyframeYears[0]);
 
-  const xScale = d3.scaleLog().domain([minAvgCap * 0.75, maxAvgCap * 1.15]).range([0, iw]);
-  const rScale = d3.scaleSqrt().domain([0, maxAvgCap]).range([2.5, 36]);
-
-  let nodes = [];
-  FUEL_ORDER.forEach(f => {
-    const rec = fuelMix.find(x => x.fuel === f);
-    const n = Math.max(3, Math.round(totalBubbles * rec.count / totalCount));
-    const baseR = rScale(avgCapByFuel[f]);
-    const targetX = xScale(avgCapByFuel[f]);
-    for (let i = 0; i < n; i++) {
-      nodes.push({
-        fuel: f,
-        r: baseR * (0.78 + Math.random() * 0.44),
-        targetX,
-        x: targetX + (Math.random() - 0.5) * 10,
-        y: ih/2 + (Math.random() - 0.5) * 20
-      });
-    }
-  });
-
-  const sim = d3.forceSimulation(nodes)
-    .force('x', d3.forceX(d => d.targetX).strength(0.25))
-    .force('y', d3.forceY(ih/2).strength(0.05))
-    .force('collide', d3.forceCollide(d => d.r + 1.2).strength(0.9))
-    .stop();
-  for (let i = 0; i < 180; i++) sim.tick();
-
-  const bubbles = g.selectAll('circle').data(nodes).enter().append('circle')
-    .attr('cx', d => d.x).attr('cy', d => d.y)
-    .attr('r', 0)
-    .attr('fill', d => `url(#grad-${d.fuel})`)
-    .attr('filter', 'url(#bubbleShadow)')
-    .on('mousemove', (evt, d) => {
-      const rec = fuelMix.find(f => f.fuel === d.fuel);
-      showTip(`<strong>${d.fuel}</strong><br>${fmtNum(rec.count)} plants · avg ${Math.round(avgCapByFuel[d.fuel])} MW each`, evt);
-    })
+  const bars = svg.selectAll('rect').data(firstFrame, d => d.fuel).enter().append('rect')
+    .attr('y', barY).attr('height', barH)
+    .attr('x', d => d.x0)
+    .attr('width', d => Math.max(0, d.x1 - d.x0))
+    .attr('fill', d => FUEL_COLORS[d.fuel])
+    .on('mousemove', (evt,d) => showTip(`<strong>${d.fuel}</strong>`, evt))
     .on('mouseleave', hideTip);
 
-  bubbles.transition()
-    .delay((d, i) => i * 9)
-    .duration(650)
-    .ease(d3.easeElasticOut.amplitude(1).period(0.5))
-    .attr('r', d => d.r);
+  const yearLabel = svg.append('text')
+    .attr('x', w/2).attr('y', barY - 16)
+    .attr('text-anchor','middle')
+    .attr('font-family','Space Grotesk').attr('font-weight',700)
+    .attr('font-size', 30).attr('fill','var(--ink)')
+    .text(keyframeYears[0]);
 
-  // real axis, log scale of avg MW per plant
-  g.append('g').attr('class', 'axis')
-    .attr('transform', `translate(0,${ih + 12})`)
-    .call(d3.axisBottom(xScale).ticks(4, '~s').tickSize(0))
-    .call(gg => gg.select('.domain').attr('stroke', 'var(--hair)'))
-    .call(gg => gg.selectAll('text')
-      .attr('font-family', 'IBM Plex Mono').attr('font-size', 9.5).attr('fill', 'var(--ink-soft)'));
-  g.append('text')
-    .attr('x', 0).attr('y', ih + 30)
-    .attr('font-family', 'IBM Plex Mono').attr('font-size', 9.5).attr('fill', 'var(--ink-soft)')
-    .text('average capacity per plant, MW (log scale) — tiny ←——————→ huge');
+  svg.append('text')
+    .attr('x', w/2).attr('y', barY + barH + 26)
+    .attr('text-anchor','middle')
+    .attr('font-family','IBM Plex Mono').attr('font-size', 11).attr('fill','var(--ink-soft)')
+    .text('world installed generating capacity, by fuel — watch it evolve');
 
-  // fuel labels, placed above each cluster's actual settled centroid
-  FUEL_ORDER.forEach(f => {
-    const pts = nodes.filter(n => n.fuel === f);
-    const cx = d3.mean(pts, p => p.x);
-    const topY = d3.min(pts, p => p.y - p.r) - 6;
-    g.append('text')
-      .attr('x', cx).attr('y', Math.max(10, topY))
-      .attr('text-anchor', 'middle')
-      .attr('font-family', 'IBM Plex Mono').attr('font-size', 10).attr('font-weight', 600)
-      .attr('fill', 'var(--ink-soft)')
-      .attr('opacity', 0)
-      .text(f)
-      .transition().delay(900).duration(400).attr('opacity', 1);
-  });
+  let idx = 0;
+  function playNext(){
+    idx++;
+    if (idx >= keyframeYears.length){
+      showFinalLabels();
+      return;
+    }
+    const yr = keyframeYears[idx];
+    const frame = frameFor(yr);
+    yearLabel.transition().duration(280).style('opacity', 0.35)
+      .on('end', function(){ yearLabel.text(yr).transition().duration(280).style('opacity', 1); });
 
-  function idleFloat(){
-    bubbles.transition().duration(2600 + Math.random()*400).ease(d3.easeSinInOut)
-      .attr('cy', d => d.y + (Math.random() - 0.5) * 6)
-      .transition().duration(2600 + Math.random()*400).ease(d3.easeSinInOut)
-      .attr('cy', d => d.y)
-      .on('end', function(d, i){ if (i === 0) idleFloat(); });
+    bars.data(frame, d => d.fuel)
+      .transition().duration(850).ease(d3.easeCubicInOut)
+      .attr('x', d => d.x0)
+      .attr('width', d => Math.max(0, d.x1 - d.x0))
+      .on('end', function(d,i){ if (i === 0) playNext(); });
   }
-  setTimeout(idleFloat, 1600);
+  setTimeout(playNext, 850);
 
-  // size legend, top-right inset
-  const legendX = w - legendW + 14;
-  const legendG = svg.append('g').attr('transform', `translate(${legendX},${margin.top + 2})`);
-  legendG.append('text').attr('x', 0).attr('y', 0)
-    .attr('font-family', 'IBM Plex Mono').attr('font-size', 9.5).attr('font-weight', 600).attr('fill', 'var(--ink-soft)')
-    .text('bubble size =');
-  legendG.append('text').attr('x', 0).attr('y', 12)
-    .attr('font-family', 'IBM Plex Mono').attr('font-size', 9.5).attr('font-weight', 600).attr('fill', 'var(--ink-soft)')
-    .text('avg MW per plant');
+  function showFinalLabels(){
+    const finalFrame = frameFor(2020);
+    svg.selectAll('.finalLbl').data(finalFrame.filter(d => (d.x1 - d.x0) > 30)).enter().append('text')
+      .attr('class', 'finalLbl')
+      .attr('x', d => (d.x0 + d.x1) / 2)
+      .attr('y', barY + barH/2 + 4)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'IBM Plex Mono').attr('font-weight', 700).attr('font-size', 10.5)
+      .attr('fill', d => d.fuel === 'Solar' ? 'var(--ink)' : '#fff')
+      .attr('opacity', 0)
+      .text(d => d.fuel)
+      .transition().duration(400).attr('opacity', 1);
 
-  const legendSmallR = rScale(minAvgCap), legendBigR = rScale(maxAvgCap);
-  const smallCy = 30 + legendSmallR;
-  legendG.append('circle').attr('cx', legendSmallR + 4).attr('cy', smallCy).attr('r', legendSmallR)
-    .attr('fill', 'var(--solar)').attr('fill-opacity', 0.55);
-  legendG.append('text').attr('x', legendSmallR * 2 + 14).attr('y', smallCy + 3)
-    .attr('font-family', 'IBM Plex Mono').attr('font-size', 9).attr('fill', 'var(--ink-soft)')
-    .text(`~${Math.round(minAvgCap)} MW`);
-
-  const bigCy = smallCy + legendSmallR + legendBigR + 14;
-  legendG.append('circle').attr('cx', legendBigR + 4).attr('cy', bigCy).attr('r', legendBigR)
-    .attr('fill', 'var(--nuclear)').attr('fill-opacity', 0.55);
-  legendG.append('text').attr('x', legendBigR * 2 + 14).attr('y', bigCy + 3)
-    .attr('font-family', 'IBM Plex Mono').attr('font-size', 9).attr('fill', 'var(--ink-soft)')
-    .text(`~${Math.round(maxAvgCap)} MW`);
+    bars.filter(d => d.fuel === 'Solar')
+      .transition().delay(150).duration(450).ease(d3.easeSinInOut)
+      .attr('y', barY - 5).attr('height', barH + 10)
+      .transition().duration(450)
+      .attr('y', barY).attr('height', barH);
+  }
 
   animateCounters('#heroStats .num', 1700);
 })();
