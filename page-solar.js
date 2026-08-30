@@ -61,15 +61,11 @@ const [econ, capByYear] = await Promise.all([
     .on('mousemove', (evt,d) => showTip(`<strong>${d.year}</strong><br>$${d.value.toFixed(3)} / kWh`, evt))
     .on('mouseleave', hideTip);
 
-  // annotate first & last — same color/size as every other label on this chart
+  // annotate first — stays near its own point since there's no crowding on the left side
   const first = data[0], last = data[data.length-1];
   g.append('text').attr('x', x(first.year)+8).attr('y', y(first.value)-14)
     .attr('font-family','IBM Plex Mono').attr('font-size', LABEL_SIZE).attr('font-weight', 700).attr('fill', LABEL_COLOR)
     .text(`${first.year}: $${first.value.toFixed(3)}`);
-  g.append('text').attr('x', x(last.year)-14).attr('y', y(last.value)-24)
-    .attr('text-anchor','end')
-    .attr('font-family','IBM Plex Mono').attr('font-size', LABEL_SIZE).attr('font-weight', 700).attr('fill', LABEL_COLOR)
-    .text(`${last.year}: $${last.value.toFixed(3)}`);
 
   // ---- comparison lines: coal, gas, nuclear ----
   // Lazard only gives us 2009 & 2023 anchor points; interpolate a 2010 value
@@ -91,7 +87,14 @@ const [econ, capByYear] = await Promise.all([
   const compColors = {Coal: 'var(--fossil)', Gas: '#9C6B3E', Nuclear: 'var(--nuclear)'};
   const compLine = d3.line().x(d => x(d.year)).y(d => y(d.value));
 
-  const compLabels = []; // collect for collision avoidance
+  // all end-of-chart labels live in the same right-side column, collected together so
+  // solar's label lines up and avoids overlap with coal/gas/nuclear exactly the same way
+  const compLabels = [{
+    fuel: 'Solar Power', value: last.value, lineColor: '#E8AA2E',
+    anchorX: x(last.year), anchorY: y(last.value),
+    x: iw + 18, y: y(last.value)
+  }];
+
   Object.keys(compDataRaw).forEach(fuel => {
     const raw = compDataRaw[fuel];
     const series = [
@@ -116,7 +119,7 @@ const [econ, capByYear] = await Promise.all([
     });
   });
 
-  // collision avoidance: sort by y, push apart any labels within 15px
+  // collision avoidance: sort by y, push apart any labels within 20px
   compLabels.sort((a,b) => a.y - b.y);
   for (let i = 1; i < compLabels.length; i++) {
     if (compLabels[i].y - compLabels[i-1].y < 20) {
